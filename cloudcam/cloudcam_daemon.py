@@ -31,6 +31,8 @@ SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "cloudcam_data").strip()
 DEVICE_ID = os.getenv("DEVICE_ID", "smartsight-alpha-01").strip()
 DROIDCAM_IP = os.getenv("DROIDCAM_IP", "100.x.y.z").strip()
 DROIDCAM_PORT = os.getenv("DROIDCAM_PORT", "4747").strip()
+LIVE_FEED_INTERVAL = int(os.getenv("LIVE_FEED_INTERVAL", "3"))   # seconds between live relay frames
+LIVE_FEED_PATH = f"{os.getenv(\"DEVICE_ID\", \"smartsight-alpha-01\")}/live/latest.jpg"
 LOCAL_CAPTURE_DIR = Path(os.getenv("LOCAL_CAPTURE_DIR", str(BASE_DIR / "captures")))
 LOCAL_CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -343,6 +345,52 @@ def telemetry_worker():
             pass
         time.sleep(4)
 
+
+# --- SUPABASE LIVE RELAY WORKER ---
+def live_feed_worker():
+    """Captures frames from DroidCam every LIVE_FEED_INTERVAL seconds and uploads
+    as 'latest.jpg' to Supabase Storage. Powers the dashboard LIVE STREAM mode
+    over HTTPS without mixed-content browser blocks."""
+    print(f"📹 [LIVE RELAY] Starting live feed relay (every {LIVE_FEED_INTERVAL}s) → {SUPABASE_BUCKET}/{LIVE_FEED_PATH}")
+    file_exists = False
+    consecutive_failures = 0
+
+    while True:
+        try:
+            if not supabase:
+                time.sleep(LIVE_FEED_INTERVAL)
+                continue
+
+            frame = capture_droidcam_frame()
+            if frame:
+                consecutive_failures = 0
+                try:
+                    if not file_exists:
+                        # First upload
+                        supabase.storage.from_(SUPABASE_BUCKET).upload(
+                            path=LIVE_FEED_PATH,
+                            file=frame,
+                            file_options={"content-type": "image/jpeg"}
+                        )
+                        file_exists = True
+                        print(f"📹 [LIVE RELAY] Live feed active ✅")
+                    else:
+                        # Overwrite existing file
+                        supabase.storage.from_(SUPABASE_BUCKET).update(
+                            path=LIVE_FEED_PATH,
+                            file=frame,
+                            file_options={"content-type": "image/jpeg"}
+                        )
+                except Exception:
+                    # Flip state and retry opposite operation next time
+                    file_exists = not file_exists
+            else:
+                consecutive_failures += 1
+                if consecutive_failures == 1:
+                    print(f"📹 [LIVE RELAY] DroidCam unavailable — waiting for stream...")
+        except Exception:
+            pass
+        time.sleep(LIVE_FEED_INTERVAL)
 # --- COMMAND LISTENER ---
 def command_listener():
     """Polls Supabase device_commands for pending missions."""
@@ -387,5 +435,6 @@ if __name__ == "__main__":
 
     threading.Thread(target=telemetry_worker, daemon=True).start()
     threading.Thread(target=drain_offline_queue, daemon=True).start()
+    threading.Thread(target=live_feed_worker, daemon=True).start()
 
     command_listener()

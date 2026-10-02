@@ -312,6 +312,7 @@ function resetCommandButtons() {
 // --- DIRECT STREAM / CLOUD CAPTURE MODES ---
 let isDirectStreamActive = false;
 let lastCloudImageUrl = null;
+let liveFeedInterval = null;
 
 function toggleDirectStream() {
     const img = document.getElementById("active-viewport-img");
@@ -320,25 +321,30 @@ function toggleDirectStream() {
     const btnCloud = document.getElementById("pill-cloud-feed");
     if (btnLive) btnLive.classList.add("active");
     if (btnCloud) btnCloud.classList.remove("active");
-    
-    img.src = config.droidcamStreamUrl;
-    img.onerror = () => {
-        logEvent("NOTICE: If direct stream doesn't load on Vercel HTTPS, allow mixed content or open locally: python3 -m http.server 8080", "warn");
-    };
-    logEvent(`ENGAGING DIRECT 30 FPS DROIDCAM MJPEG STREAM -> ${config.droidcamStreamUrl}`, "sys");
+
+    // Supabase live relay URL (HTTPS-safe - no mixed content block)
+    const liveUrl = config.supabaseUrl + "/storage/v1/object/public/" + config.bucket + "/" + config.deviceId + "/live/latest.jpg";
+
+    // Stop any existing polling
+    if (liveFeedInterval) { clearInterval(liveFeedInterval); liveFeedInterval = null; }
+
+    // Refresh every 2.5 seconds with cache-buster
+    const refreshFrame = () => { img.src = liveUrl + "?t=" + Date.now(); };
+    refreshFrame();
+    liveFeedInterval = setInterval(refreshFrame, 2500);
+
+    logEvent("LIVE RELAY ACTIVE // Polling Supabase every 2.5s for latest Pi frame", "sys");
 }
 
 function toggleCloudFeed() {
     const img = document.getElementById("active-viewport-img");
     isDirectStreamActive = false;
+    if (liveFeedInterval) { clearInterval(liveFeedInterval); liveFeedInterval = null; }
     const btnLive = document.getElementById("pill-live-stream");
     const btnCloud = document.getElementById("pill-cloud-feed");
     if (btnCloud) btnCloud.classList.add("active");
     if (btnLive) btnLive.classList.remove("active");
-    
-    if (lastCloudImageUrl) {
-        img.src = lastCloudImageUrl;
-    }
+    if (lastCloudImageUrl) { img.src = lastCloudImageUrl; }
     logEvent("DISPLAYING CLOUD SATELLITE CAPTURES FROM SUPABASE", "sys");
 }
 
