@@ -1,8 +1,8 @@
 # SmartSight CloudCam // System Implementation Guide
 **Deployment Target:** Raspberry Pi 4 (Debian 13 Trixie)  
 **Wearer Unit:** `ratish@raspberrypi4`  
-**Base Directory:** `/home/ratish/Desktop/SmartSight/SmartSight`  
-**Environment:** `/home/ratish/Desktop/SmartSight/smartsight_env`  
+**Base Directory:** `/home/ratish/Desktop/SmartSight-Droidcam`  
+**Environment:** `/home/ratish/Desktop/SmartSight-Droidcam/venv`  
 **Optical Source:** Android Phone (DroidCam over Tailscale Mesh)  
 **Cloud Backend:** Supabase (Database + Storage Bucket `cloudcam_data` + Realtime)
 
@@ -11,22 +11,21 @@
 ## 1. System Topology & Directory Map
 
 ```
-/home/ratish/Desktop/SmartSight/
-├── smartsight_env/                      # Virtual Environment (Python 3.12+ / Trixie)
-└── SmartSight/                          # Project Root
-    ├── captures/                        # Local image queue buffer (offline fallback)
-    ├── cloudcam/                        # CloudCam Subsystem
-    │   ├── cloudcam_daemon.py           # Daemon service (DroidCam grab, Supabase sync)
-    │   ├── offline_queue.db             # Local SQLite database (offline persistence)
-    │   ├── .env                         # Supabase credentials & Tailscale IP
-    │   ├── requirements.txt             # Pinned Python dependencies
-    │   ├── schema.sql                   # Supabase database migration script
-    │   └── smartsight-cloudcam.service  # Systemd service unit file
-    ├── control_centre/                  # Tactical LAEP Mission Control UI
-    │   ├── index.html                   # Mission Control Dashboard (Space Grotesk / Inter)
-    │   ├── style.css                    # LAEP Aerospace design tokens & styling
-    │   └── app.js                       # Realtime Supabase synchronization engine
-    └── LiveCam/                         # Local vision & obstacle pipeline
+/home/ratish/Desktop/SmartSight-Droidcam/
+├── venv/                                # Virtual Environment (Python 3.12+ / Trixie)
+├── captures/                            # Local image queue buffer (offline fallback)
+├── cloudcam/                            # CloudCam Subsystem
+│   ├── cloudcam_daemon.py               # Daemon service (DroidCam grab, Supabase sync)
+│   ├── offline_queue.db                 # Local SQLite database (offline persistence)
+│   ├── .env                             # Supabase credentials & Tailscale IP
+│   ├── requirements.txt                 # Pinned Python dependencies
+│   ├── schema.sql                       # Supabase database migration script
+│   └── smartsight-cloudcam.service      # Systemd service unit file
+├── control_centre/                      # Tactical LAEP Mission Control UI
+│   ├── index.html                       # Mission Control Dashboard (Space Grotesk / Inter)
+│   ├── style.css                        # LAEP Aerospace design tokens & styling
+│   └── app.js                           # Realtime Supabase synchronization engine
+└── LiveCam/                             # Local vision & obstacle pipeline
 ```
 
 ---
@@ -77,16 +76,16 @@ Tailscale bridges the Android phone and Raspberry Pi over different networks (4G
 Your virtual environment is located at `~/Desktop/SmartSight/smartsight_env`:
 
 ```bash
-# Activate your existing virtual environment
-source /home/ratish/Desktop/SmartSight/smartsight_env/bin/activate
+# Activate your virtual environment
+source /home/ratish/Desktop/SmartSight-Droidcam/venv/bin/activate
 
 # Install required packages
-cd /home/ratish/Desktop/SmartSight/SmartSight/cloudcam
+cd /home/ratish/Desktop/SmartSight-Droidcam/cloudcam
 pip install -r requirements.txt
 ```
 
 ### Step 4.2: Configure `.env`
-Edit `/home/ratish/Desktop/SmartSight/SmartSight/cloudcam/.env`:
+Edit `/home/ratish/Desktop/SmartSight-Droidcam/cloudcam/.env`:
 
 ```ini
 # Supabase Project Credentials (from Settings -> API)
@@ -104,7 +103,7 @@ DROIDCAM_IP=100.95.120.40
 DROIDCAM_PORT=4747
 
 # Local Capture Directory for Offline Queue
-LOCAL_CAPTURE_DIR=/home/ratish/Desktop/SmartSight/SmartSight/captures
+LOCAL_CAPTURE_DIR=/home/ratish/Desktop/SmartSight-Droidcam/captures
 ```
 
 ### Step 4.3: Test Run the Daemon Manually
@@ -118,7 +117,7 @@ The pre-configured service file [`smartsight-cloudcam.service`](smartsight-cloud
 
 ```bash
 # Copy unit file to systemd directory
-sudo cp /home/ratish/Desktop/SmartSight/SmartSight/cloudcam/smartsight-cloudcam.service /etc/systemd/system/
+sudo cp /home/ratish/Desktop/SmartSight-Droidcam/cloudcam/smartsight-cloudcam.service /etc/systemd/system/
 
 # Reload systemd and enable on boot
 sudo systemctl daemon-reload
@@ -132,7 +131,7 @@ sudo journalctl -u smartsight-cloudcam.service -f
 
 ## 5. Launching the Tactical Control Centre UI
 
-The Control Centre files are located in `/home/ratish/Desktop/SmartSight/SmartSight/control_centre/`:
+The Control Centre files are located in `/home/ratish/Desktop/SmartSight-Droidcam/control_centre/`:
 * [`index.html`](../control_centre/index.html) — LAEP Mission Control Dashboard
 * [`style.css`](../control_centre/style.css) — Aerospace Dark Theme (Space Grotesk / Inter / IBM Plex Mono)
 * [`app.js`](../control_centre/app.js) — Realtime Supabase Telemetry & Command Dispatcher
@@ -140,7 +139,7 @@ The Control Centre files are located in `/home/ratish/Desktop/SmartSight/SmartSi
 ### Local Preview:
 Open `control_centre/index.html` directly in your browser, or serve it via python:
 ```bash
-cd /home/ratish/Desktop/SmartSight/SmartSight/control_centre
+cd /home/ratish/Desktop/SmartSight-Droidcam/control_centre
 python3 -m http.server 8080
 ```
 Open `http://localhost:8080` in any web browser.
