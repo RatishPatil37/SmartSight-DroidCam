@@ -32,7 +32,7 @@ DEVICE_ID = os.getenv("DEVICE_ID", "smartsight-alpha-01").strip()
 DROIDCAM_IP = os.getenv("DROIDCAM_IP", "100.x.y.z").strip()
 DROIDCAM_PORT = os.getenv("DROIDCAM_PORT", "4747").strip()
 LIVE_FEED_INTERVAL = int(os.getenv("LIVE_FEED_INTERVAL", "3"))   # seconds between live relay frames
-LIVE_FEED_PATH = f"{os.getenv(\"DEVICE_ID\", \"smartsight-alpha-01\")}/live/latest.jpg"
+LIVE_FEED_PATH = f"{DEVICE_ID}/live/latest.jpg"
 LOCAL_CAPTURE_DIR = Path(os.getenv("LOCAL_CAPTURE_DIR", str(BASE_DIR / "captures")))
 LOCAL_CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -110,11 +110,15 @@ def drain_offline_queue():
                 with open(file_path, "rb") as f:
                     file_bytes = f.read()
 
-                supabase.storage.from_(SUPABASE_BUCKET).upload(
-                    path=storage_filename,
-                    file=file_bytes,
-                    file_options={"content-type": "image/jpeg" if media_type == "photo" else "video/mp4"}
-                )
+                try:
+                    supabase.storage.from_(SUPABASE_BUCKET).upload(
+                        path=storage_filename,
+                        file=file_bytes,
+                        file_options={"content-type": "image/jpeg" if media_type == "photo" else "video/mp4", "upsert": "true"}
+                    )
+                except Exception as upload_err:
+                    if "already exists" not in str(upload_err).lower() and "duplicate" not in str(upload_err).lower():
+                        raise upload_err
 
                 public_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{storage_filename}"
 
@@ -273,7 +277,7 @@ def execute_capture_command(command_id: str, command_type: str):
             "status": "completed",
             "executed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "payload": {"url": public_url, "file": filename}
-        }).execute()
+        }).eq("id", command_id).execute()
         print(f"✨ [SUCCESS] Capture completed and published: {public_url}")
 
     except Exception as e:
