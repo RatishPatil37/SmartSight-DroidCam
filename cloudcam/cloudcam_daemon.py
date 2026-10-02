@@ -1,4 +1,4 @@
-﻿"""
+"""
 SmartSight CloudCam Daemon (Debian Trixie / RPi 4 & 5)
 Handles:
 1. Tailscale DroidCam HTTP snapshot fetching
@@ -426,11 +426,32 @@ def command_listener():
             pass
         time.sleep(1.0)
 
+def setup_adb_forward_if_needed():
+    """If DROIDCAM_IP is set to localhost/127.0.0.1 (USB Cable mode), auto-configures ADB port forwarding."""
+    if DROIDCAM_IP in ("127.0.0.1", "localhost"):
+        try:
+            import subprocess
+            res = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=4)
+            lines = [l.strip() for l in res.stdout.strip().splitlines() if l.strip() and not l.startswith("List of")]
+            if any("\tdevice" in l for l in lines):
+                cmd = ["adb", "forward", f"tcp:{DROIDCAM_PORT}", f"tcp:{DROIDCAM_PORT}"]
+                subprocess.run(cmd, capture_output=True, text=True, timeout=4)
+                print(f"🔌 [USB ADB] Successfully routed 127.0.0.1:{DROIDCAM_PORT} -> Phone over USB cable.")
+            elif any("\tunauthorized" in l for l in lines):
+                print(f"⚠️ [USB ADB] Phone connected but UNAUTHORIZED! Unlock phone and tap 'Allow USB debugging'.")
+            else:
+                print(f"ℹ️ [USB ADB] USB mode active (127.0.0.1). If connection fails, check 'adb devices' or plug phone via USB.")
+        except FileNotFoundError:
+            print(f"ℹ️ [USB ADB] 'adb' tool not found on system. For USB cable mode, install with: sudo apt install -y adb")
+        except Exception:
+            pass
+
 if __name__ == "__main__":
     print(f"======================================================")
     print(f"🚀 SMARTSIGHT CLOUDCAM DAEMON // UNIT: [{DEVICE_ID}]")
     print(f"📡 Target DroidCam Stream: http://{DROIDCAM_IP}:{DROIDCAM_PORT}")
     print(f"======================================================")
+    setup_adb_forward_if_needed()
     init_offline_db()
 
     threading.Thread(target=telemetry_worker, daemon=True).start()
