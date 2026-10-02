@@ -140,8 +140,69 @@ def drain_offline_queue():
             # Remains offline or error during upload, will retry next cycle
             pass
 
-# --- DROIDCAM CAPTURE LOGIC ---
+# --- PERSISTENT DROIDCAM STREAM BUFFER ---
+# Maintains a single persistent stream connection so the phone camera stays
+# smoothly ON and never toggles on/off in a loop.
+_latest_frame = None
+_latest_frame_lock = threading.Lock()
+_last_frame_time = 0.0
+
+def stream_worker():
+    """Maintains a single persistent connection to DroidCam MJPEG stream.
+    This keeps the phone camera active steadily without flickering or cycling on/off."""
+    global _latest_frame, _last_frame_time
+    video_url = f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/video"
+    print(f"📡 [STREAM WORKER] Persistent video connection starting on {video_url}...")
+
+    while True:
+        try:
+            resp = requests.get(video_url, stream=True, timeout=10)
+            ct = resp.headers.get("Content-Type", "")
+            if not ("multipart" in ct or "image" in ct):
+                resp.close()
+                time.sleep(2)
+                continue
+
+            bytes_data = b""
+            for chunk in resp.iter_content(chunk_size=4096):
+                if not chunk:
+                    break
+                bytes_data += chunk
+                a = bytes_data.find(b'\xff\xd8')
+                b_pos = bytes_data.find(b'\xff\xd9')
+                if a != -1 and b_pos != -1 and b_pos > a:
+                    jpg = bytes_data[a:b_pos+2]
+                    bytes_data = bytes_data[b_pos+2:]
+                    if len(jpg) > 1000:
+                        with _latest_frame_lock:
+                            _latest_frame = jpg
+                            _last_frame_time = time.time()
+                elif len(bytes_data) > 2 * 1024 * 1024:
+                    bytes_data = b""
+            resp.close()
+        except Exception:
+            pass
+        time.sleep(2)
+
 def capture_droidcam_frame():
+    """Returns the most recent frame from the persistent stream buffer (instant, 0ms latency)."""
+    with _latest_frame_lock:
+        if _latest_frame and (time.time() - _last_frame_time < 6):
+            return _latest_frame
+
+    # Fallback to single static snapshot only if persistent stream buffer has no fresh frame
+    base_url = f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}"
+    for endpoint in ["/shot.jpg", "/cam/1/frame.jpg", "/jpeg"]:
+        try:
+            resp = requests.get(f"{base_url}{endpoint}", timeout=2)
+            ct = resp.headers.get("Content-Type", "")
+            if resp.status_code == 200 and "image" in ct and len(resp.content) > 1000:
+                return resp.content
+        except Exception:
+            pass
+    return None
+
+def old_capture_droidcam_frame():
     """Fetches high-res JPEG frame directly from DroidCam over Tailscale or Local IP.
     DroidCam serves MJPEG on /video ONLY when the app is open & camera is active.
     If /video returns a small HTML page (<2KB), DroidCam is in standby mode."""
@@ -318,21 +379,18 @@ def telemetry_worker():
                 except Exception:
                     pass
 
-            # Check DroidCam connectivity — check /video Content-Type to detect REAL stream
+            # Check DroidCam connectivity WITHOUT opening/closing the video stream!
             droid_status = "offline"
-            try:
-                r = requests.get(
-                    f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/video",
-                    stream=True, timeout=3
-                )
-                ct = r.headers.get("Content-Type", "")
-                r.close()
-                if "multipart" in ct or "image" in ct:
-                    droid_status = "online"   # Camera is ACTIVELY streaming
-                elif r.status_code in (200, 302, 404):
-                    droid_status = "standby"  # Server up but not streaming
-            except Exception:
-                droid_status = "offline"
+            if time.time() - _last_frame_time < 6:
+                droid_status = "online"
+            else:
+                try:
+                    # Lightweight ping to the web root - does NOT trigger camera sensor!
+                    r = requests.get(f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/", timeout=2)
+                    if r.status_code in (200, 302):
+                        droid_status = "standby"
+                except Exception:
+                    droid_status = "offline"
 
             if supabase:
                 supabase.table("device_telemetry").upsert({
@@ -352,46 +410,28 @@ def telemetry_worker():
 
 # --- SUPABASE LIVE RELAY WORKER ---
 def live_feed_worker():
-    """Captures frames from DroidCam every LIVE_FEED_INTERVAL seconds and uploads
-    as 'latest.jpg' to Supabase Storage. Powers the dashboard LIVE STREAM mode
-    over HTTPS without mixed-content browser blocks."""
+    """Uploads the latest frame from in-memory buffer to Supabase Storage every LIVE_FEED_INTERVAL.
+    Zero additional HTTP connections to the phone!"""
     print(f"📹 [LIVE RELAY] Starting live feed relay (every {LIVE_FEED_INTERVAL}s) → {SUPABASE_BUCKET}/{LIVE_FEED_PATH}")
-    file_exists = False
-    consecutive_failures = 0
+    last_uploaded_time = 0.0
 
     while True:
         try:
-            if not supabase:
-                time.sleep(LIVE_FEED_INTERVAL)
-                continue
+            if supabase:
+                with _latest_frame_lock:
+                    frame = _latest_frame
+                    frame_ts = _last_frame_time
 
-            frame = capture_droidcam_frame()
-            if frame:
-                consecutive_failures = 0
-                try:
-                    if not file_exists:
-                        # First upload
+                if frame and frame_ts > last_uploaded_time:
+                    try:
                         supabase.storage.from_(SUPABASE_BUCKET).upload(
                             path=LIVE_FEED_PATH,
                             file=frame,
-                            file_options={"content-type": "image/jpeg"}
+                            file_options={"content-type": "image/jpeg", "upsert": "true"}
                         )
-                        file_exists = True
-                        print(f"📹 [LIVE RELAY] Live feed active ✅")
-                    else:
-                        # Overwrite existing file
-                        supabase.storage.from_(SUPABASE_BUCKET).update(
-                            path=LIVE_FEED_PATH,
-                            file=frame,
-                            file_options={"content-type": "image/jpeg"}
-                        )
-                except Exception:
-                    # Flip state and retry opposite operation next time
-                    file_exists = not file_exists
-            else:
-                consecutive_failures += 1
-                if consecutive_failures == 1:
-                    print(f"📹 [LIVE RELAY] DroidCam unavailable — waiting for stream...")
+                        last_uploaded_time = frame_ts
+                    except Exception:
+                        pass
         except Exception:
             pass
         time.sleep(LIVE_FEED_INTERVAL)
@@ -458,6 +498,7 @@ if __name__ == "__main__":
     setup_adb_forward_if_needed()
     init_offline_db()
 
+    threading.Thread(target=stream_worker, daemon=True).start()
     threading.Thread(target=telemetry_worker, daemon=True).start()
     threading.Thread(target=drain_offline_queue, daemon=True).start()
     threading.Thread(target=live_feed_worker, daemon=True).start()
