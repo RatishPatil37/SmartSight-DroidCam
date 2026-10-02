@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart-Sight // Neural Interface</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
+</head>
+<body>
+
+    <div class="overlay"></div>
+
+    <div class="container">
+        <header class="cyber-header">
+            <div class="logo-text">
+                <h1>SMART<span class="neon-flicker">SIGHT</span></h1>
+                <small>NEURAL VISION MODULE v2.6</small>
+            </div>
+            <div class="status-indicator" id="sys-status">STANDBY</div>
+        </header>
+
+        <main class="vision-deck">
+            <div class="video-frame">
+                <div class="corner-bracket top-left"></div>
+                <div class="corner-bracket top-right"></div>
+                <div class="corner-bracket bottom-left"></div>
+                <div class="corner-bracket bottom-right"></div>
+                <img src="{{ url_for('video_feed') }}" alt="Neural Feed" class="live-feed">
+                <div class="scan-bar"></div>
+                <div class="hud-text">LIVE FEED // 640x480 // 30FPS</div>
+            </div>
+        </main>
+
+        <footer class="control-deck">
+            <div class="audio-control">
+                <label class="toggle-label">AUDIO OUTPUT</label>
+                <div class="toggle-switch" onclick="toggleAudioMode()">
+                    <div class="toggle-option active" id="opt-mobile">MOBILE</div>
+                    <div class="toggle-option" id="opt-pi">PI HEADPHONES</div>
+                </div>
+            </div>
+
+            <button class="cyber-btn" id="toggle-btn" onclick="toggleSystem()">
+                <span class="btn-content">
+                    <i class="fas fa-power-off"></i>
+                    <span id="btn-text">INITIATE SYSTEM</span>
+                </span>
+            </button>
+            
+            <div class="console-log" id="console">
+                <div class="log-line">> System Initialized...</div>
+                <div class="log-line">> Audio Output: MOBILE DEVICE</div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        let active = false;
+        let audioMode = 'mobile';
+        let audioPollInterval = null;
+
+        function speak(text) {
+            if (audioMode === 'mobile' && 'speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        async function toggleAudioMode() {
+            audioMode = audioMode === 'mobile' ? 'pi' : 'mobile';
+            
+            // Update UI
+            document.getElementById('opt-mobile').classList.toggle('active');
+            document.getElementById('opt-pi').classList.toggle('active');
+            
+            log(`Switching Audio Output to: ${audioMode.toUpperCase()}`);
+
+            // Tell Server
+            await fetch('/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ audio_mode: audioMode })
+            });
+        }
+
+        function startAudioPolling() {
+            if (audioPollInterval) clearInterval(audioPollInterval);
+            audioPollInterval = setInterval(async () => {
+                // Only poll if we are in mobile mode
+                if (audioMode === 'pi') return; 
+
+                try {
+                    const res = await fetch('/get_audio_status');
+                    const data = await res.json();
+                    if (data.message) {
+                        log("DETECTED: " + data.message);
+                        speak(data.message);
+                    }
+                } catch (e) {
+                    console.error("Audio Sync Error");
+                }
+            }, 1000);
+        }
+
+        function stopAudioPolling() {
+            if (audioPollInterval) clearInterval(audioPollInterval);
+        }
+
+        async function toggleSystem() {
+            const btn = document.getElementById('toggle-btn');
+            const btnText = document.getElementById('btn-text');
+            const status = document.getElementById('sys-status');
+            const cmd = active ? 'stop' : 'start';
+
+            log(`Sending command: ${cmd.toUpperCase()}...`);
+
+            try {
+                const response = await fetch('/control', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ command: cmd })
+                });
+                const data = await response.json();
+
+                if (data.status === 'active') {
+                    active = true;
+                    btn.classList.add('active-state');
+                    btnText.innerText = "TERMINATE SCAN";
+                    status.innerText = "ONLINE";
+                    status.style.color = "#0f0";
+                    status.style.textShadow = "0 0 10px #0f0";
+                    document.querySelector('.scan-bar').style.display = 'block';
+                    
+                    startAudioPolling(); 
+                    if (audioMode === 'mobile') speak("Neural network engaged.");
+                    
+                } else {
+                    active = false;
+                    btn.classList.remove('active-state');
+                    btnText.innerText = "INITIATE SYSTEM";
+                    status.innerText = "STANDBY";
+                    status.style.color = "#ff003c";
+                    status.style.textShadow = "0 0 10px #ff003c";
+                    document.querySelector('.scan-bar').style.display = 'none';
+                    
+                    stopAudioPolling();
+                    if (audioMode === 'mobile') speak("System halted.");
+                }
+            } catch (err) {
+                log("ERROR: CONNECTION LOST");
+            }
+        }
+
+        function log(msg) {
+            const consoleDiv = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            line.innerText = `> ${msg}`;
+            consoleDiv.prepend(line);
+        }
+    </script>
+</body>
+</html>

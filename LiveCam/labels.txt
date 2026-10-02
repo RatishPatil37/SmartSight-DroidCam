@@ -1,0 +1,12 @@
+Ambulance
+Animal
+Car
+Vehicle
+Chair
+Bottle
+Person
+Table
+Fruit
+Stairs
+House Wall
+Tree

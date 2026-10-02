@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>LAEP // SMARTSIGHT — Autonomous Reconnaissance & Optical Control</title>
+    
+    <!-- LAEP Official Fonts: Space Grotesk, Inter, IBM Plex Mono, IBM Plex Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome & Supabase SDK -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-void text-primary font-sans antialiased">
+
+    <!-- SUBTLE AEROSPACE SCANLINE & GRID TEXTURE -->
+    <div class="aerospace-grid-bg" aria-hidden="true"></div>
+
+    <div class="app-layout">
+
+        <!-- 1. LAEP GLOBAL TOPBAR -->
+        <header class="laep-topbar">
+            <div class="topbar-left">
+                <!-- Circular LAEP Emblem Badge -->
+                <div class="laep-brand-mark">
+                    <span class="emblem-glyph">S</span>
+                </div>
+                <div class="laep-brand-text">
+                    <div class="brand-heading">
+                        <span class="brand-core">SMARTSIGHT</span>
+                        <span class="brand-divider">/</span>
+                        <span class="brand-sub">LAEP OPS</span>
+                    </div>
+                    <div class="brand-caption">AUTONOMOUS RECONNAISSANCE & OPTICAL CONTROL</div>
+                </div>
+
+                <!-- Navigation Tabs (LAEP Capsule Style) -->
+                <nav class="laep-nav-tabs">
+                    <button class="nav-tab active"><i class="fas fa-satellite-dish"></i> MISSION CONTROL</button>
+                    <button class="nav-tab" onclick="switchTab('telemetry')"><i class="fas fa-chart-line"></i> TELEMETRY LAB</button>
+                    <button class="nav-tab" onclick="switchTab('archive')"><i class="fas fa-photo-film"></i> IMAGERY VAULT</button>
+                    <button class="nav-tab" onclick="openConfigModal()"><i class="fas fa-gear"></i> MESH UPLINK</button>
+                </nav>
+            </div>
+
+            <!-- Topbar Right Quick Telemetry Badges -->
+            <div class="topbar-right">
+                <div class="quick-badge" title="Press Ctrl+K or Click to Configure" onclick="openConfigModal()">
+                    <span class="badge-icon"><i class="fas fa-terminal"></i></span>
+                    <span class="badge-text">CONFIG</span>
+                    <span class="badge-key">⌘K</span>
+                </div>
+
+                <div class="quick-badge" id="badge-mesh-status">
+                    <span class="badge-dot dot-cyan"></span>
+                    <span class="badge-text" id="status-mesh-text">TAILSCALE P2P</span>
+                </div>
+
+                <div class="quick-badge" id="badge-droidcam">
+                    <span class="badge-dot dot-green" id="dot-droidcam"></span>
+                    <span class="badge-text" id="status-droidcam-text">DROIDCAM: 4747</span>
+                </div>
+
+                <!-- Zulu & Local Clocks -->
+                <div class="laep-clock-cluster">
+                    <div class="clock-block">
+                        <span class="clock-label">LOCAL</span>
+                        <span class="clock-val" id="clock-local">00:00:00</span>
+                    </div>
+                    <div class="clock-block active">
+                        <span class="clock-label">ZULU / UTC</span>
+                        <span class="clock-val text-ice" id="clock-utc">00:00:00Z</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 2. SECONDARY LIVE TELEMETRY RIBBON -->
+        <div class="laep-telemetry-ribbon">
+            <div class="ribbon-item">
+                <span class="ribbon-pulse dot-green"></span>
+                <span class="ribbon-label">TARGET UNIT:</span>
+                <span class="ribbon-val text-white" id="ribbon-device-id">ALPHA-01</span>
+            </div>
+            <div class="ribbon-item">
+                <span class="ribbon-label">COMMS LINK:</span>
+                <span class="ribbon-val text-teal" id="ribbon-comms-link">DIRECT-TO-PI (NOMINAL)</span>
+            </div>
+            <div class="ribbon-item">
+                <span class="ribbon-label">STORAGE ENGINE:</span>
+                <span class="ribbon-val text-science">SUPABASE S3 + SQLITE BUFFER</span>
+            </div>
+            <div class="ribbon-item">
+                <span class="ribbon-label">LATENCY RTT:</span>
+                <span class="ribbon-val text-amber" id="ribbon-latency">-- ms</span>
+            </div>
+            <div class="ribbon-item ml-auto">
+                <span class="ribbon-label">ENCRYPTION:</span>
+                <span class="ribbon-val text-ice">CHACHA20-POLY1305 (WIREGUARD)</span>
+            </div>
+        </div>
+
+        <!-- 3. MAIN DASHBOARD SPLIT VIEW -->
+        <main class="laep-main-grid">
+
+            <!-- LEFT REGION: OPTICAL RECON VIEWPORT & HARDWARE METRICS -->
+            <section class="laep-card viewport-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-crosshairs text-ice"></i>
+                        <span>OPTICAL RECONNAISSANCE SENSOR</span>
+                        <span class="title-sub">[CH-01 // FULL APERTURE]</span>
+                    </div>
+                    <div class="card-actions">
+                        <span class="status-chip active" id="chip-stream-state">REALTIME LINK</span>
+                        <span class="status-chip">1080P // 30 FPS</span>
+                        <button class="icon-tool-btn" onclick="toggleFullscreen()" title="Fullscreen Optical View"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+
+                <!-- TACTICAL OPTICAL VIEWPORT -->
+                <div class="optical-stage" id="optical-stage">
+                    <!-- Corner Reticles (LAEP Aerospace Style) -->
+                    <div class="reticle-bracket top-left"></div>
+                    <div class="reticle-bracket top-right"></div>
+                    <div class="reticle-bracket bottom-left"></div>
+                    <div class="reticle-bracket bottom-right"></div>
+
+                    <!-- Crosshairs & Sub-pixel Markings -->
+                    <div class="stage-crosshair-h"></div>
+                    <div class="stage-crosshair-v"></div>
+                    <div class="stage-radar-ring"></div>
+                    <div class="stage-center-dot"></div>
+
+                    <!-- HUD Telemetry Tags Inside Viewport -->
+                    <div class="hud-tag top-left">
+                        <div class="tag-row"><span class="tag-key">AZIMUTH:</span> <span class="tag-val" id="hud-az">184.22°</span></div>
+                        <div class="tag-row"><span class="tag-key">ELEVATION:</span> <span class="tag-val" id="hud-el">+12.04°</span></div>
+                    </div>
+
+                    <div class="hud-tag top-right text-right">
+                        <div class="tag-row"><span class="tag-key">SENSOR:</span> <span class="tag-val">DROIDCAM_STREAM</span></div>
+                        <div class="tag-row"><span class="tag-key">EXPOSURE:</span> <span class="tag-val">AUTO // ISO 400</span></div>
+                    </div>
+
+                    <div class="hud-tag bottom-left">
+                        <div class="tag-row"><span class="tag-key">SIG_LOCK:</span> <span class="tag-val text-green">STABLE_P2P</span></div>
+                        <div class="tag-row"><span class="tag-key">FRAME_TIMESTAMP:</span> <span class="tag-val text-ice" id="hud-frame-ts">--:--:-- UTC</span></div>
+                    </div>
+
+                    <!-- Optical Image Feed -->
+                    <img id="active-viewport-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1280' height='720' viewBox='0 0 1280 720'><rect width='1280' height='720' fill='%23050608'/><text x='50%25' y='50%25' fill='%23b8f0ff' font-family='Space Grotesk, monospace' font-size='22' text-anchor='middle' dominant-baseline='middle' letter-spacing='0.15em'>OPTICAL SENSOR CALIBRATING // AWAITING SATELLITE PASS</text></svg>" alt="Optical Recon Stream">
+
+                    <!-- Optical Spectrum Control Bar -->
+                    <div class="optical-spectrum-bar">
+                        <span class="spectrum-label">SPECTRUM:</span>
+                        <button class="spectrum-pill active" onclick="setSpectrum('rgb')">RGB RAW</button>
+                        <button class="spectrum-pill" onclick="setSpectrum('flir')">FLIR THERMAL</button>
+                        <button class="spectrum-pill" onclick="setSpectrum('nvg')">NVG PHOSPHOR</button>
+                        <button class="spectrum-pill" onclick="setSpectrum('polar')">RADAR POLAR</button>
+                    </div>
+                </div>
+
+                <!-- HARDWARE METRICS GRID (LAEP VOLUMETRIC METRIC STYLE) -->
+                <div class="hardware-metrics-grid">
+                    <!-- Metric 1: CPU Load -->
+                    <div class="metric-box">
+                        <div class="metric-top">
+                            <span class="metric-title"><i class="fas fa-microchip text-ice"></i> CPU ALLOC</span>
+                            <span class="metric-tag">4 CORES</span>
+                        </div>
+                        <div class="metric-big-num" id="val-cpu">--%</div>
+                        <div class="metric-bar-track">
+                            <div class="metric-bar-fill" id="bar-cpu" style="width: 0%;"></div>
+                        </div>
+                        <div class="metric-sub">ARM CORTEX-A72 @ 1.8 GHz</div>
+                    </div>
+
+                    <!-- Metric 2: SoC Thermal -->
+                    <div class="metric-box">
+                        <div class="metric-top">
+                            <span class="metric-title"><i class="fas fa-temperature-half text-amber"></i> CORE THERMAL</span>
+                            <span class="metric-tag" id="tag-temp-state">NOMINAL</span>
+                        </div>
+                        <div class="metric-big-num" id="val-temp">--°C</div>
+                        <div class="metric-bar-track">
+                            <div class="metric-bar-fill bg-amber" id="bar-temp" style="width: 0%;"></div>
+                        </div>
+                        <div class="metric-sub" id="sub-temp-limit">MAX LIMIT: 85.0°C</div>
+                    </div>
+
+                    <!-- Metric 3: RAM Footprint -->
+                    <div class="metric-box">
+                        <div class="metric-top">
+                            <span class="metric-title"><i class="fas fa-memory text-cyan"></i> MEMORY</span>
+                            <span class="metric-tag">LPDDR4</span>
+                        </div>
+                        <div class="metric-big-num" id="val-ram">--%</div>
+                        <div class="metric-bar-track">
+                            <div class="metric-bar-fill bg-cyan" id="bar-ram" style="width: 0%;"></div>
+                        </div>
+                        <div class="metric-sub">TOTAL ALLOCATED: 4.0 GB</div>
+                    </div>
+
+                    <!-- Metric 4: Offline Buffer Queue -->
+                    <div class="metric-box">
+                        <div class="metric-top">
+                            <span class="metric-title"><i class="fas fa-database text-green"></i> BUFFER QUEUE</span>
+                            <span class="metric-tag">SQLITE</span>
+                        </div>
+                        <div class="metric-big-num" id="val-queue">0</div>
+                        <div class="metric-bar-track">
+                            <div class="metric-bar-fill bg-green" id="bar-queue" style="width: 0%;"></div>
+                        </div>
+                        <div class="metric-sub" id="sub-queue-state">OFFLINE CACHE: EMPTY</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT REGION: MISSION TASKING & EVENT BUS -->
+            <aside class="laep-card controls-card">
+                
+                <!-- 1. MISSION TASKING CONTROLS -->
+                <div class="control-section-header">
+                    <div class="card-title">
+                        <i class="fas fa-terminal text-ice"></i>
+                        <span>TACTICAL TASKING DECK</span>
+                    </div>
+                    <span class="flight-status-chip">DEFCON 4 // NOMINAL</span>
+                </div>
+
+                <div class="action-tasks-deck">
+                    <!-- Primary Million Dollar CTA Button: Optical Snapshot -->
+                    <button class="btn-aerospace-primary" onclick="dispatchMission('capture_photo')" id="btn-snap">
+                        <div class="btn-primary-glow"></div>
+                        <div class="btn-content">
+                            <div class="btn-glyph"><i class="fas fa-camera"></i></div>
+                            <div class="btn-labels">
+                                <span class="btn-headline">CAPTURE OPTICAL SNAPSHOT</span>
+                                <span class="btn-subtext">DIRECT TAILSCALE 1080P PULL TO SUPABASE S3</span>
+                            </div>
+                            <span class="btn-badge" id="badge-snap">EXEC [CMD-01]</span>
+                        </div>
+                    </button>
+
+                    <!-- Secondary Tactical Action Grid -->
+                    <div class="secondary-actions-grid">
+                        <!-- Task 2: AI Scene Reasoning -->
+                        <button class="btn-aerospace-secondary" onclick="dispatchMission('ai_inspect')" id="btn-ai">
+                            <div class="action-icon text-cyan"><i class="fas fa-brain"></i></div>
+                            <div class="action-meta">
+                                <span class="action-title">AI TERRAIN REASONING</span>
+                                <span class="action-desc">Multimodal obstacle & threat scan</span>
+                            </div>
+                            <span class="action-tag">[CMD-02]</span>
+                        </button>
+
+                        <!-- Task 3: Acoustic Beacon -->
+                        <button class="btn-aerospace-secondary" onclick="dispatchMission('audio_beacon')" id="btn-beacon">
+                            <div class="action-icon text-amber"><i class="fas fa-bullhorn"></i></div>
+                            <div class="action-meta">
+                                <span class="action-title">WEARER AUDIO BEACON</span>
+                                <span class="action-desc">High-priority acoustic locator tone</span>
+                            </div>
+                            <span class="action-tag">[CMD-03]</span>
+                        </button>
+
+                        <!-- Task 4: RF Ping Probe -->
+                        <button class="btn-aerospace-secondary" onclick="dispatchMission('ping')" id="btn-ping">
+                            <div class="action-icon text-green"><i class="fas fa-satellite"></i></div>
+                            <div class="action-meta">
+                                <span class="action-title">TELEMETRY PING PROBE</span>
+                                <span class="action-desc">Measure round-trip mesh tunnel latency</span>
+                            </div>
+                            <span class="action-tag">[CMD-04]</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. MISSION EVENT LOG (CHRONOLOGICAL SIGINT STREAM) -->
+                <div class="event-stream-container">
+                    <div class="stream-header">
+                        <div class="stream-title">
+                            <i class="fas fa-wave-square text-science"></i>
+                            <span>MISSION EVENT LOG // SIGINT BUS</span>
+                        </div>
+                        <div class="stream-actions">
+                            <button class="stream-filter-btn active" onclick="filterLog('all')">ALL</button>
+                            <button class="stream-filter-btn" onclick="filterLog('cmd')">CMD</button>
+                            <button class="stream-filter-btn" onclick="filterLog('ack')">ACK</button>
+                            <button class="stream-clear-btn" onclick="clearEventLog()" title="Clear stream"><i class="fas fa-trash-can"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="event-stream-body" id="event-stream">
+                        <div class="log-entry sys">
+                            <span class="log-ts">T+00:00:00</span>
+                            <span class="log-tag">[SYSTEM_INIT]</span>
+                            <span class="log-text">LAEP // SMARTSIGHT SATELLITE INTERACTION BUS MOUNTED.</span>
+                        </div>
+                        <div class="log-entry sys">
+                            <span class="log-ts">T+00:00:01</span>
+                            <span class="log-tag">[CRYPTO]</span>
+                            <span class="log-text">WIREGUARD PROTOCOL ACTIVE // 100.x.y.z OVERLAY ENCRYPTED.</span>
+                        </div>
+                        <div class="log-entry warn">
+                            <span class="log-ts">T+00:00:02</span>
+                            <span class="log-tag">[UPLINK_STATUS]</span>
+                            <span class="log-text">AWAITING SUPABASE CONFIGURATION UPLINK (PRESS ⌘K).</span>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- BOTTOM REGION: IMAGERY RECON VAULT (FILMSTRIP PASSES) -->
+            <section class="laep-card archive-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-photo-film text-ice"></i>
+                        <span>SURVEILLANCE VAULT // CHRONOLOGICAL RECON PASSES</span>
+                    </div>
+                    <div class="card-actions">
+                        <span class="status-chip" id="counter-vault-total">0 ARTIFACTS RECORDED</span>
+                        <button class="icon-tool-btn" onclick="loadPastCaptures()" title="Refresh Vault Records"><i class="fas fa-rotate"></i> RE-SYNC</button>
+                    </div>
+                </div>
+
+                <div class="vault-filmstrip" id="vault-filmstrip">
+                    <div class="vault-empty-state">
+                        <i class="fas fa-satellite"></i>
+                        <span>NO ARCHIVAL RECON PASSES RECORDED. EXECUTE [CMD-01] TO STORE FIRST ARTIFACT.</span>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- 4. LAEP FOOTER -->
+        <footer class="laep-footer">
+            <div class="footer-col">
+                <span class="f-muted">FRAMEWORK:</span>
+                <span class="f-bright">LAEP AEROSPACE HUD v3.0</span>
+            </div>
+            <div class="footer-col">
+                <span class="f-muted">TARGET OS:</span>
+                <span class="f-bright">DEBIAN 13 (TRIXIE) // LINUX 6.6.x</span>
+            </div>
+            <div class="footer-col">
+                <span class="f-muted">MESH ARCHITECTURE:</span>
+                <span class="f-bright">TAILSCALE CGNAT-TRAVERSAL</span>
+            </div>
+            <div class="footer-col ml-auto">
+                <span class="f-muted">SYSTEM CLEARANCE:</span>
+                <span class="f-cyan">CH-2 RECON // LEVEL-5 AUTHORIZED</span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- 5. TACTICAL MESH UPLINK CONFIGURATION MODAL (⌘K) -->
+    <div class="laep-modal-backdrop" id="config-modal">
+        <div class="laep-modal-window">
+            <div class="modal-header-bar">
+                <div class="modal-title-group">
+                    <div class="modal-emblem">S</div>
+                    <div>
+                        <h3 class="modal-title-text">SATELLITE MESH UPLINK CONFIGURATION</h3>
+                        <div class="modal-subtitle">SUPABASE S3 & REALTIME POSTGRES REPLICATION</div>
+                    </div>
+                </div>
+                <button class="modal-close-btn" onclick="closeConfigModal()">&times;</button>
+            </div>
+
+            <div class="modal-body-container">
+                <p class="modal-explanatory-note">
+                    Configure your high-availability Supabase connection. Secrets are securely persisted within your local browser sandbox and never leaked.
+                </p>
+
+                <div class="laep-input-group">
+                    <label>SUPABASE PROJECT URL (HTTPS)</label>
+                    <input type="text" id="cfg-url" placeholder="https://your-project.supabase.co" autocomplete="off" spellcheck="false">
+                </div>
+
+                <div class="laep-input-group">
+                    <label>SUPABASE PUBLIC ANON KEY</label>
+                    <input type="password" id="cfg-key" placeholder="eyJhbGciOi..." autocomplete="off" spellcheck="false">
+                </div>
+
+                <div class="laep-input-group">
+                    <label>TARGET WEARER DEVICE ID</label>
+                    <input type="text" id="cfg-device" value="smartsight-alpha-01" autocomplete="off" spellcheck="false">
+                </div>
+            </div>
+
+            <div class="modal-footer-bar">
+                <button class="btn-modal-cancel" onclick="closeConfigModal()">DISCARD</button>
+                <button class="btn-modal-submit" onclick="saveConfiguration()">ESTABLISH ORBITAL LINK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

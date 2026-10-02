@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart-Sight</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css)">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <!-- Header -->
+        <div class="header-section">
+            <h1>Smart-Sight</h1>
+            <div class="subtitle">SMART TRANSFER PROTOCOL // ONLINE</div>
+        </div>
+
+        <!-- Panel 1: Controls -->
+        <div class="panel">
+            <div class="panel-title">
+                <i class="fas fa-gamepad"></i> COMMAND MODULE
+            </div>
+            
+            <div class="control-grid">
+                <button class="btn photo" onclick="trigger('photo')" id="btn-photo">
+                    <span><i class="fas fa-camera"></i> Capture Image</span>
+                    <div class="spinner" id="spin-photo"></div>
+                </button>
+
+                <button class="btn video" onclick="trigger('video')" id="btn-video">
+                    <span><i class="fas fa-video"></i> Record (5s)</span>
+                    <div class="spinner" id="spin-video"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel 2: Live Log -->
+        <div class="panel">
+            <div class="panel-title">
+                <i class="fas fa-terminal"></i> SYSTEM LOG
+            </div>
+            <div class="terminal-window" id="log-window">
+                <div class="log-entry">> System Initialized...</div>
+                <div class="log-entry">> Connected to OneDrive: cloud_sight</div>
+                <div class="log-entry">> Target Folder: rpi cam</div>
+                <div class="log-entry" style="color:white;">> Awaiting User Input_</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function log(message, type='info') {
+            const win = document.getElementById('log-window');
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            
+            const time = new Date().toLocaleTimeString('en-US', {hour12: false, hour: "numeric", minute: "numeric", second: "numeric"});
+            div.innerText = `[${time}] ${message}`;
+            
+            if(type === 'error') div.style.color = '#ff3333';
+            if(type === 'success') div.style.color = '#0aff0a';
+            
+            win.prepend(div); // Add to top
+            return div; // Return the element so we can modify it
+        }
+
+        async function trigger(mode) {
+            const btn = document.getElementById(`btn-${mode}`);
+            const spinner = document.getElementById(`spin-${mode}`);
+            const endpoint = mode === 'photo' ? '/capture_photo' : '/capture_video';
+            const actionName = mode === 'photo' ? 'Image Capture' : 'Video Sequence';
+
+            // UI Lock & Spinner On
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+            spinner.style.opacity = '1';
+            
+            // Create Log Entry with Loading Dots
+            const logItem = log(`Initiating ${actionName}`);
+            logItem.classList.add('loading-dots');
+
+            try {
+                const response = await fetch(endpoint, { method: 'POST' });
+                const data = await response.json();
+                
+                // Stop the dots animation on the previous line
+                logItem.classList.remove('loading-dots');
+
+                if (data.status === 'success') {
+                    log(`Upload Complete: ${data.file}`, 'success');
+                } else {
+                    log(`Error: ${data.message}`, 'error');
+                }
+
+            } catch (err) {
+                logItem.classList.remove('loading-dots');
+                log('CRITICAL: Connection Lost', 'error');
+            }
+
+            // UI Unlock & Spinner Off
+            spinner.style.opacity = '0';
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        }
+    </script>
+
+</body>
+</html>

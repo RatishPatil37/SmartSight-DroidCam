@@ -1,0 +1,34 @@
+﻿# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+smartsight_env/
+rpi_yolo_env/
+
+# Secrets & Configuration
+.env
+*.env.local
+
+# Databases & Caches
+*.db
+*.sqlite3
+
+# Test Captures & Media Files
+captures/
+*.mp4
+*.h264
+temp_*.jpg
+IMG_*.jpg
+VID_*.mp4
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

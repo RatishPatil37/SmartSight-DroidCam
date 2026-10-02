@@ -1,0 +1,1169 @@
+/* ==========================================================
+   LAEP // SMARTSIGHT DESIGN SYSTEM & AEROSPACE STYLING
+   Inspired by: https://laep-web-vert.vercel.app/
+   Fonts: Space Grotesk, Inter, IBM Plex Mono, IBM Plex Sans
+   Colors: Void (#050608), Surface (#0b0d10), Ice Cyan (#b8f0ff)
+   ========================================================== */
+
+:root {
+    /* Core LAEP Space Hierarchy */
+    --c-void: #050608;
+    --c-surface: #0b0d10;
+    --c-surface2: #12151a;
+    --c-surface3: #181d24;
+    --c-panel: rgba(5, 6, 8, 0.92);
+    
+    /* Hairline Engineering Borders */
+    --c-border: rgba(255, 255, 255, 0.08);
+    --c-border-hover: rgba(255, 255, 255, 0.16);
+    --c-border-active: rgba(125, 211, 252, 0.45);
+    --c-border-ice: rgba(184, 240, 255, 0.35);
+
+    /* Scientific Accents & Status */
+    --c-ice: #b8f0ff;
+    --c-ice-dim: #7dd3fc;
+    --c-science: #78c8dc;
+    --c-sun: #ffc857;
+    --c-path: #2dd4bf;
+    --c-hazard: #ff6b5e;
+    
+    /* Text Hierarchy */
+    --c-text: #f4f4f0;
+    --c-text-dim: #9aa0a6;
+    --c-text-muted: #6b7280;
+
+    /* Radii */
+    --r-micro: 2px;
+    --r-md: 4px;
+    --r-card: 6px;
+
+    /* Shadows & Glows */
+    --glow-ice: 0 0 25px rgba(184, 240, 255, 0.28);
+    --glow-cyan: 0 0 20px rgba(125, 211, 252, 0.2);
+    --shadow-card: 0 16px 36px rgba(0, 0, 0, 0.6);
+    --bevel-card: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), inset 0 -1px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+body {
+    background-color: var(--c-void);
+    color: var(--c-text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- AEROSPACE SUB-METER GRID TEXTURE --- */
+.aerospace-grid-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: 
+        radial-gradient(circle at 15% 15%, rgba(125, 211, 252, 0.04) 0%, transparent 45%),
+        radial-gradient(circle at 85% 75%, rgba(184, 240, 255, 0.03) 0%, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.app-layout {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* --- 1. LAEP GLOBAL TOPBAR --- */
+.laep-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 56px;
+    background: var(--c-panel);
+    border-bottom: 1px solid var(--c-border);
+    backdrop-filter: blur(16px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.laep-brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--c-surface2);
+    border: 1px solid var(--c-border-ice);
+    box-shadow: var(--glow-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.emblem-glyph {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--c-ice);
+}
+
+.laep-brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-heading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    color: #ffffff;
+}
+
+.brand-divider {
+    color: var(--c-text-muted);
+    font-weight: 300;
+}
+
+.brand-sub {
+    color: var(--c-ice);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.brand-caption {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--c-text-dim);
+    letter-spacing: 0.12em;
+}
+
+/* LAEP CAPSULE NAVIGATION TABS */
+.laep-nav-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--r-micro);
+    color: var(--c-text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.nav-tab:hover {
+    color: var(--c-text);
+    background: var(--c-surface2);
+    border-color: var(--c-border);
+}
+
+.nav-tab.active {
+    color: var(--c-ice);
+    background: rgba(184, 240, 255, 0.06);
+    border-color: var(--c-border-active);
+    box-shadow: 0 0 12px rgba(125, 211, 252, 0.15);
+}
+
+/* TOPBAR RIGHT */
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.quick-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    background: var(--c-surface2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-micro);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.quick-badge:hover {
+    border-color: var(--c-border-active);
+}
+
+.badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.dot-cyan { background: var(--c-ice); box-shadow: 0 0 6px var(--c-ice); }
+.dot-green { background: var(--c-path); box-shadow: 0 0 6px var(--c-path); }
+.dot-amber { background: var(--c-sun); box-shadow: 0 0 6px var(--c-sun); }
+.dot-red { background: var(--c-hazard); box-shadow: 0 0 6px var(--c-hazard); }
+
+.badge-text { color: var(--c-text); }
+.badge-key {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 8.5px;
+    color: var(--c-text-dim);
+}
+
+/* CLOCK MODULE */
+.laep-clock-cluster {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-left: 12px;
+    border-left: 1px solid var(--c-border);
+}
+
+.clock-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.clock-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    color: var(--c-text-muted);
+}
+
+.clock-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c-text-dim);
+}
+
+.clock-block.active .clock-val {
+    color: var(--c-ice);
+    text-shadow: 0 0 10px var(--glow-ice);
+}
+
+/* --- 2. SECONDARY LIVE TELEMETRY RIBBON --- */
+.laep-telemetry-ribbon {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 6px 18px;
+    background: rgba(11, 13, 16, 0.85);
+    border-bottom: 1px solid var(--c-border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+}
+
+.ribbon-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ribbon-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: pulse 1.8s infinite;
+}
+
+.ribbon-label { color: var(--c-text-muted); }
+.ribbon-val { font-weight: 600; }
+.text-white { color: #ffffff; }
+.text-teal { color: var(--c-path); }
+.text-science { color: var(--c-science); }
+.text-amber { color: var(--c-sun); }
+.text-ice { color: var(--c-ice); }
+.text-cyan { color: var(--c-ice-dim); }
+.ml-auto { margin-left: auto; }
+
+/* --- 3. MAIN DASHBOARD GRID --- */
+.laep-main-grid {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: 1.25fr 0.75fr;
+    grid-template-rows: auto auto;
+    gap: 12px;
+    padding: 12px 18px;
+}
+
+.laep-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+}
+
+.laep-card:hover {
+    border-color: var(--c-border-hover);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(18, 21, 26, 0.6);
+    border-bottom: 1px solid var(--c-border);
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--c-text);
+}
+
+.title-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--c-ice-dim);
+    font-weight: 400;
+}
+
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    background: var(--c-surface2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-micro);
+    color: var(--c-text-dim);
+}
+
+.status-chip.active {
+    color: var(--c-ice);
+    border-color: var(--c-border-active);
+    background: rgba(184, 240, 255, 0.05);
+}
+
+.icon-tool-btn {
+    background: transparent;
+    border: 1px solid var(--c-border);
+    color: var(--c-text-dim);
+    width: 26px;
+    height: 26px;
+    border-radius: var(--r-micro);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    transition: all 0.15s;
+}
+
+.icon-tool-btn:hover {
+    color: var(--c-ice);
+    border-color: var(--c-ice);
+    background: rgba(184, 240, 255, 0.08);
+}
+
+/* --- OPTICAL STAGE & RETICLE --- */
+.optical-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #020305;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.optical-stage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: filter 0.25s ease;
+}
+
+/* RETICLE CORNER BRACKETS (LAEP ASTRONOMICAL HUD STYLE) */
+.reticle-bracket {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-color: var(--c-ice);
+    border-style: solid;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.85;
+}
+
+.reticle-bracket.top-left { top: 14px; left: 14px; border-width: 2px 0 0 2px; }
+.reticle-bracket.top-right { top: 14px; right: 14px; border-width: 2px 2px 0 0; }
+.reticle-bracket.bottom-left { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; }
+.reticle-bracket.bottom-right { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; }
+
+.stage-crosshair-h {
+    position: absolute;
+    top: 50%;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(184, 240, 255, 0.25) 30%, rgba(184, 240, 255, 0.25) 70%, transparent);
+    pointer-events: none;
+    z-index: 8;
+}
+
+.stage-crosshair-v {
+    position: absolute;
+    left: 50%;
+    top: 15%;
+    bottom: 15%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(184, 240, 255, 0.25) 30%, rgba(184, 240, 255, 0.25) 70%, transparent);
+    pointer-events: none;
+    z-index: 8;
+}
+
+.stage-radar-ring {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border: 1px dashed rgba(184, 240, 255, 0.2);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 8;
+}
+
+.stage-center-dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: var(--c-ice);
+    border-radius: 50%;
+    box-shadow: var(--glow-ice);
+    pointer-events: none;
+    z-index: 8;
+}
+
+/* HUD LABELS ON STAGE */
+.hud-tag {
+    position: absolute;
+    z-index: 12;
+    background: rgba(5, 6, 8, 0.82);
+    border: 1px solid var(--c-border);
+    padding: 4px 8px;
+    border-radius: var(--r-micro);
+    backdrop-filter: blur(4px);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    line-height: 1.4;
+    pointer-events: none;
+}
+
+.hud-tag.top-left { top: 18px; left: 24px; }
+.hud-tag.top-right { top: 18px; right: 24px; }
+.hud-tag.bottom-left { bottom: 18px; left: 24px; }
+
+.tag-key { color: var(--c-text-muted); }
+.tag-val { font-weight: 600; color: var(--c-text); }
+
+/* OPTICAL SPECTRUM CONTROLS */
+.optical-spectrum-bar {
+    position: absolute;
+    bottom: 16px;
+    right: 20px;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(5, 6, 8, 0.88);
+    border: 1px solid var(--c-border);
+    padding: 3px 6px;
+    border-radius: var(--r-micro);
+    backdrop-filter: blur(8px);
+}
+
+.spectrum-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--c-text-muted);
+    margin-right: 4px;
+}
+
+.spectrum-pill {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--c-text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    padding: 2px 7px;
+    border-radius: var(--r-micro);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.spectrum-pill:hover, .spectrum-pill.active {
+    color: var(--c-ice);
+    background: rgba(184, 240, 255, 0.1);
+    border-color: var(--c-border-active);
+}
+
+/* --- HARDWARE VOLUMETRIC METRICS GRID --- */
+.hardware-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 12px;
+    background: var(--c-surface2);
+}
+
+.metric-box {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-micro);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    color: var(--c-text-dim);
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.metric-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+    padding: 1px 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--c-border);
+    border-radius: 1px;
+    color: var(--c-text-muted);
+}
+
+.metric-big-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--c-text);
+    line-height: 1.1;
+    margin: 3px 0;
+}
+
+.metric-bar-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 1px;
+    overflow: hidden;
+}
+
+.metric-bar-fill {
+    height: 100%;
+    background: var(--c-ice);
+    transition: width 0.3s ease;
+}
+
+.metric-bar-fill.bg-amber { background: var(--c-sun); }
+.metric-bar-fill.bg-cyan { background: var(--c-ice-dim); }
+.metric-bar-fill.bg-green { background: var(--c-path); }
+
+.metric-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+    color: var(--c-text-muted);
+    letter-spacing: 0.06em;
+}
+
+/* --- RIGHT PANEL: MISSION CONTROLS --- */
+.controls-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.control-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(18, 21, 26, 0.6);
+    border-bottom: 1px solid var(--c-border);
+}
+
+.flight-status-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    color: var(--c-path);
+    background: rgba(45, 212, 191, 0.08);
+    border: 1px solid rgba(45, 212, 191, 0.25);
+    padding: 2px 6px;
+    border-radius: var(--r-micro);
+}
+
+.action-tasks-deck {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-bottom: 1px solid var(--c-border);
+}
+
+/* MILLION DOLLAR PRIMARY CTA BUTTON (LAEP STYLE) */
+.btn-aerospace-primary {
+    position: relative;
+    width: 100%;
+    background: var(--c-ice);
+    border: none;
+    border-radius: var(--r-micro);
+    padding: 14px 16px;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(184, 240, 255, 0.3);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.btn-aerospace-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 35px rgba(184, 240, 255, 0.5);
+    filter: brightness(1.05);
+}
+
+.btn-aerospace-primary:active {
+    transform: translateY(1px);
+}
+
+.btn-content {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #050608;
+}
+
+.btn-glyph {
+    font-size: 20px;
+    color: #050608;
+}
+
+.btn-labels {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    flex-grow: 1;
+}
+
+.btn-headline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #050608;
+}
+
+.btn-subtext {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.06em;
+    color: rgba(5, 6, 8, 0.75);
+    font-weight: 600;
+}
+
+.btn-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 700;
+    background: rgba(5, 6, 8, 0.12);
+    border: 1px solid rgba(5, 6, 8, 0.3);
+    padding: 3px 6px;
+    border-radius: var(--r-micro);
+    color: #050608;
+}
+
+/* SECONDARY TACTICAL BUTTONS */
+.secondary-actions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.btn-aerospace-secondary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--c-surface2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-micro);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+
+.btn-aerospace-secondary:hover {
+    background: var(--c-surface3);
+    border-color: var(--c-border-active);
+    transform: translateX(2px);
+}
+
+.action-icon {
+    font-size: 16px;
+    width: 22px;
+    text-align: center;
+}
+
+.action-meta {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.action-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-text);
+    letter-spacing: 0.06em;
+}
+
+.action-desc {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--c-text-muted);
+}
+
+.action-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--c-ice-dim);
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--c-border);
+    border-radius: 1px;
+}
+
+/* --- MISSION EVENT STREAM (SIGINT BUS) --- */
+.event-stream-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.stream-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(18, 21, 26, 0.5);
+    border-bottom: 1px solid var(--c-border);
+}
+
+.stream-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--c-science);
+    letter-spacing: 0.08em;
+}
+
+.stream-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.stream-filter-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--c-text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 1px;
+    cursor: pointer;
+}
+
+.stream-filter-btn.active, .stream-filter-btn:hover {
+    color: var(--c-ice);
+    background: rgba(184, 240, 255, 0.08);
+    border-color: var(--c-border-active);
+}
+
+.stream-clear-btn {
+    background: none;
+    border: none;
+    color: var(--c-text-muted);
+    font-size: 10px;
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+.stream-clear-btn:hover { color: var(--c-hazard); }
+
+.event-stream-body {
+    flex-grow: 1;
+    height: 180px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 8px 12px;
+    background: #020306;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.log-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    animation: fadeIn 0.18s ease;
+}
+
+.log-ts { color: var(--c-text-muted); flex-shrink: 0; }
+.log-tag { font-weight: 600; flex-shrink: 0; }
+.log-text { color: var(--c-text); word-break: break-all; }
+
+.log-entry.sys .log-tag { color: var(--c-science); }
+.log-entry.cmd .log-tag { color: var(--c-ice); }
+.log-entry.ack .log-tag { color: var(--c-path); }
+.log-entry.warn .log-tag { color: var(--c-sun); }
+.log-entry.err .log-tag { color: var(--c-hazard); }
+
+/* --- 3. RECON ARCHIVE VAULT (FILMSTRIP PASSES) --- */
+.archive-card {
+    grid-column: 1 / -1;
+}
+
+.vault-filmstrip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 12px;
+    min-height: 130px;
+    background: var(--c-surface2);
+}
+
+.vault-empty-state {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--c-text-muted);
+}
+
+.vault-card-item {
+    flex: 0 0 180px;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-micro);
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.vault-card-item:hover {
+    border-color: var(--c-ice);
+    box-shadow: 0 0 15px rgba(184, 240, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+.vault-card-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.vault-tag-id {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    background: rgba(5, 6, 8, 0.85);
+    padding: 1px 4px;
+    border: 1px solid var(--c-border);
+    color: var(--c-ice);
+    border-radius: 1px;
+}
+
+.vault-tag-time {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    background: rgba(5, 6, 8, 0.85);
+    padding: 1px 4px;
+    color: var(--c-text);
+    border-radius: 1px;
+}
+
+/* --- 4. LAEP FOOTER --- */
+.laep-footer {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 8px 18px;
+    background: var(--c-panel);
+    border-top: 1px solid var(--c-border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+}
+
+.footer-col { display: flex; gap: 6px; }
+.f-muted { color: var(--c-text-muted); }
+.f-bright { color: var(--c-text); font-weight: 600; }
+.f-cyan { color: var(--c-ice); font-weight: 600; }
+
+/* --- 5. TACTICAL MODAL (⌘K) --- */
+.laep-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(2, 3, 5, 0.85);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.laep-modal-window {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border-active);
+    border-radius: var(--r-md);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), var(--glow-ice);
+    width: 90%;
+    max-width: 480px;
+    overflow: hidden;
+}
+
+.modal-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: var(--c-surface2);
+    border-bottom: 1px solid var(--c-border);
+}
+
+.modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-emblem {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--c-surface3);
+    border: 1px solid var(--c-border-ice);
+    color: var(--c-ice);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+}
+
+.modal-title-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--c-text);
+}
+
+.modal-subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--c-ice-dim);
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    color: var(--c-text-muted);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.modal-body-container {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.modal-explanatory-note {
+    font-size: 11px;
+    color: var(--c-text-dim);
+    line-height: 1.5;
+}
+
+.laep-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.laep-input-group label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--c-text-muted);
+}
+
+.laep-input-group input {
+    background: var(--c-void);
+    border: 1px solid var(--c-border);
+    color: #ffffff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 8px 10px;
+    border-radius: var(--r-micro);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.laep-input-group input:focus {
+    border-color: var(--c-ice);
+}
+
+.modal-footer-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--c-surface2);
+    border-top: 1px solid var(--c-border);
+}
+
+.btn-modal-cancel {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--c-border);
+    color: var(--c-text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    border-radius: var(--r-micro);
+    cursor: pointer;
+}
+
+.btn-modal-submit {
+    padding: 8px 16px;
+    background: var(--c-ice);
+    border: none;
+    color: #050608;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: var(--r-micro);
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(184, 240, 255, 0.25);
+}
+
+.btn-modal-submit:hover {
+    filter: brightness(1.08);
+}
+
+/* --- ANIMATIONS --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+/* --- RESPONSIVENESS --- */
+@media (max-width: 1080px) {
+    .laep-main-grid {
+        grid-template-columns: 1fr;
+    }
+    .laep-topbar {
+        height: auto;
+        padding: 10px 14px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .topbar-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

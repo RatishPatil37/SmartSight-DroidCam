@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Roboto+Mono:wght@400;700&display=swap');
+
+:root {
+    --neon-blue: #00f3ff;
+    --neon-purple: #bc13fe;
+    --neon-green: #0aff0a;
+    --bg-dark: #050510;
+    --glass-bg: rgba(10, 10, 25, 0.7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.1), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(188, 19, 254, 0.1), transparent 25%);
+    font-family: 'Rajdhani', sans-serif;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* The Main Container */
+.dashboard-container {
+    width: 100%;
+    max-width: 1000px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two columns on Desktop */
+    gap: 30px;
+}
+
+/* Header Section */
+.header-section {
+    grid-column: 1 / -1;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 20px;
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 32px;
+    text-transform: uppercase;
+    margin: 0;
+    letter-spacing: 4px;
+    background: linear-gradient(90deg, var(--neon-blue), #fff, var(--neon-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+}
+
+.subtitle {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--neon-blue);
+    opacity: 0.8;
+    letter-spacing: 2px;
+}
+
+/* Panel Styling */
+.panel {
+    background: rgba(0,0,0,0.3);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.panel-title {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Action Buttons */
+.control-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+
+.btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    padding: 20px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:hover {
+    background: var(--neon-blue);
+    color: black;
+    box-shadow: 0 0 20px var(--neon-blue);
+}
+
+.btn.video {
+    border-color: var(--neon-purple);
+    color: var(--neon-purple);
+}
+
+.btn.video:hover {
+    background: var(--neon-purple);
+    color: white;
+    box-shadow: 0 0 20px var(--neon-purple);
+}
+
+/* Log / Status Area */
+.terminal-window {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: #0aff0a;
+    height: 150px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse; /* Newest logs at bottom */
+}
+
+.log-entry {
+    margin-bottom: 5px;
+    padding-left: 10px;
+    border-left: 2px solid #0aff0a;
+    animation: fadeIn 0.3s ease;
+    word-wrap: break-word;
+}
+
+/* Loading Dots Animation for Log */
+.loading-dots::after {
+    content: '';
+    display: inline-block;
+    animation: ellipsis 1.5s infinite;
+    font-weight: bold;
+}
+
+@keyframes ellipsis {
+    0% { content: ''; }
+    20% { content: '.'; }
+    40% { content: '..'; }
+    60% { content: '...'; }
+    80% { content: '....'; }
+    100% { content: '.....'; }
+}
+
+/* Spinner Animation for Buttons */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .dashboard-container {
+        grid-template-columns: 1fr; /* Stack columns on mobile */
+        padding: 20px;
+    }
+    h1 { font-size: 24px; }
+    .btn { padding: 25px; }
+}
