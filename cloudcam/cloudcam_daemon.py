@@ -31,7 +31,7 @@ SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "cloudcam_data").strip()
 DEVICE_ID = os.getenv("DEVICE_ID", "smartsight-alpha-01").strip()
 DROIDCAM_IP = os.getenv("DROIDCAM_IP", "100.x.y.z").strip()
 DROIDCAM_PORT = os.getenv("DROIDCAM_PORT", "4747").strip()
-LIVE_FEED_INTERVAL = int(os.getenv("LIVE_FEED_INTERVAL", "3"))   # seconds between live relay frames
+LIVE_FEED_INTERVAL = float(os.getenv("LIVE_FEED_INTERVAL", "0.4"))   # seconds between live relay frames
 LIVE_FEED_PATH = f"{DEVICE_ID}/live/latest.jpg"
 LOCAL_CAPTURE_DIR = Path(os.getenv("LOCAL_CAPTURE_DIR", str(BASE_DIR / "captures")))
 LOCAL_CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
@@ -410,9 +410,9 @@ def telemetry_worker():
 
 # --- SUPABASE LIVE RELAY WORKER ---
 def live_feed_worker():
-    """Uploads the latest frame from in-memory buffer to Supabase Storage every LIVE_FEED_INTERVAL.
-    Zero additional HTTP connections to the phone!"""
-    print(f"📹 [LIVE RELAY] Starting live feed relay (every {LIVE_FEED_INTERVAL}s) → {SUPABASE_BUCKET}/{LIVE_FEED_PATH}")
+    """High-speed live relay: compresses/uploads latest frame to Supabase every LIVE_FEED_INTERVAL.
+    Optimized for sub-second low-latency streaming without affecting full-res snapshots."""
+    print(f"📹 [LIVE RELAY] Fast live relay active (every {LIVE_FEED_INTERVAL}s) → {SUPABASE_BUCKET}/{LIVE_FEED_PATH}")
     last_uploaded_time = 0.0
 
     while True:
@@ -423,10 +423,28 @@ def live_feed_worker():
                     frame_ts = _last_frame_time
 
                 if frame and frame_ts > last_uploaded_time:
+                    payload = frame
+                    try:
+                        import cv2
+                        import numpy as np
+                        nparr = np.frombuffer(frame, np.uint8)
+                        img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                        if img_cv is not None:
+                            h, w = img_cv.shape[:2]
+                            if w > 854:
+                                new_w = 854
+                                new_h = int(h * (854 / w))
+                                img_cv = cv2.resize(img_cv, (new_w, new_h), interpolation=cv2.INTER_AREA)
+                            ok, enc = cv2.imencode('.jpg', img_cv, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+                            if ok:
+                                payload = enc.tobytes()
+                    except Exception:
+                        pass
+
                     try:
                         supabase.storage.from_(SUPABASE_BUCKET).upload(
                             path=LIVE_FEED_PATH,
-                            file=frame,
+                            file=payload,
                             file_options={"content-type": "image/jpeg", "upsert": "true"}
                         )
                         last_uploaded_time = frame_ts
@@ -435,6 +453,7 @@ def live_feed_worker():
         except Exception:
             pass
         time.sleep(LIVE_FEED_INTERVAL)
+
 # --- COMMAND LISTENER ---
 def command_listener():
     """Polls Supabase device_commands for pending missions."""

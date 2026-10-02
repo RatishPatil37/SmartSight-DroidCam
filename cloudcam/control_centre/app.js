@@ -314,35 +314,49 @@ function resetCommandButtons() {
 // --- DIRECT STREAM / CLOUD CAPTURE MODES ---
 let isDirectStreamActive = false;
 let lastCloudImageUrl = null;
-let liveFeedInterval = null;
+let liveStreamTimeout = null;
+
+function pollNextLiveFrame() {
+    if (!isDirectStreamActive) return;
+    const img = document.getElementById("active-viewport-img");
+    if (!img) return;
+
+    const bucket = config.bucket || "cloudcam_data";
+    const liveUrl = `${config.supabaseUrl}/storage/v1/object/public/${bucket}/${config.deviceId}/live/latest.jpg?t=${Date.now()}`;
+
+    const nextImg = new Image();
+    nextImg.onload = () => {
+        if (isDirectStreamActive) {
+            img.src = nextImg.src;
+            // Adaptive sub-second polling: next frame loads 200ms after current one finishes
+            liveStreamTimeout = setTimeout(pollNextLiveFrame, 200);
+        }
+    };
+    nextImg.onerror = () => {
+        if (isDirectStreamActive) {
+            liveStreamTimeout = setTimeout(pollNextLiveFrame, 800);
+        }
+    };
+    nextImg.src = liveUrl;
+}
 
 function toggleDirectStream() {
-    const img = document.getElementById("active-viewport-img");
     isDirectStreamActive = true;
     const btnLive = document.getElementById("pill-live-stream");
     const btnCloud = document.getElementById("pill-cloud-feed");
     if (btnLive) btnLive.classList.add("active");
     if (btnCloud) btnCloud.classList.remove("active");
 
-    // Supabase live relay URL (HTTPS-safe - no mixed content block)
-    const bucket = config.bucket || "cloudcam_data";
-    const liveUrl = config.supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + config.deviceId + "/live/latest.jpg";
+    if (liveStreamTimeout) { clearTimeout(liveStreamTimeout); liveStreamTimeout = null; }
+    pollNextLiveFrame();
 
-    // Stop any existing polling
-    if (liveFeedInterval) { clearInterval(liveFeedInterval); liveFeedInterval = null; }
-
-    // Refresh every 2.5 seconds with cache-buster
-    const refreshFrame = () => { img.src = liveUrl + "?t=" + Date.now(); };
-    refreshFrame();
-    liveFeedInterval = setInterval(refreshFrame, 2500);
-
-    logEvent("LIVE RELAY ACTIVE // Polling Supabase every 2.5s for latest Pi frame", "sys");
+    logEvent("LIVE STREAM ACTIVE // Adaptive high-speed frame relay armed", "sys");
 }
 
 function toggleCloudFeed() {
     const img = document.getElementById("active-viewport-img");
     isDirectStreamActive = false;
-    if (liveFeedInterval) { clearInterval(liveFeedInterval); liveFeedInterval = null; }
+    if (liveStreamTimeout) { clearTimeout(liveStreamTimeout); liveStreamTimeout = null; }
     const btnLive = document.getElementById("pill-live-stream");
     const btnCloud = document.getElementById("pill-cloud-feed");
     if (btnCloud) btnCloud.classList.add("active");
@@ -366,12 +380,15 @@ function updateOpticalViewport(url, timestamp) {
 
 function prependVaultArtifact(cap) {
     const strip = document.getElementById("vault-filmstrip");
+    if (!strip) return;
     const emptyNotice = strip.querySelector(".vault-empty-state");
     if (emptyNotice) emptyNotice.remove();
 
     vaultCount++;
-    document.getElementById("counter-captures").innerText = vaultCount;
-    document.getElementById("counter-vault-total").innerText = `${vaultCount} ARTIFACTS RECORDED`;
+    const counterCaptures = document.getElementById("counter-captures");
+    if (counterCaptures) counterCaptures.innerText = vaultCount;
+    const counterVaultTotal = document.getElementById("counter-vault-total");
+    if (counterVaultTotal) counterVaultTotal.innerText = `${vaultCount} ARTIFACTS RECORDED`;
 
     const item = document.createElement("div");
     item.className = "vault-card-item";
@@ -394,20 +411,28 @@ async function loadPastCaptures() {
     if (!supabaseClient) return;
     try {
         logEvent("RETRIEVING HISTORICAL IMAGERY ARTIFACTS FROM S3 BUCKET...", "sys");
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from("captures")
             .select("*")
             .eq("device_id", config.deviceId)
             .order("captured_at", { ascending: false })
-            .limit(14);
+            .limit(50);
+
+        if (error) {
+            logEvent(`STORAGE QUERY FAULT: ${error.message}`, "warn");
+            return;
+        }
 
         if (data && data.length > 0) {
             updateOpticalViewport(data[0].media_url, data[0].captured_at);
             const strip = document.getElementById("vault-filmstrip");
-            strip.innerHTML = "";
+            if (strip) strip.innerHTML = "";
             vaultCount = 0;
-            data.reverse().forEach(cap => prependVaultArtifact(cap));
+            // Iterate reverse so oldest is prepended first, newest stays on the left
+            data.slice().reverse().forEach(cap => prependVaultArtifact(cap));
             logEvent(`SYNCED ${data.length} HISTORICAL RECON PASSES`, "ack");
+        } else {
+            logEvent("NO RECON ARTIFACTS FOUND FOR UNIT: [" + config.deviceId + "]", "sys");
         }
     } catch (err) {
         logEvent(`STORAGE QUERY FAULT: ${err.message}`, "warn");
