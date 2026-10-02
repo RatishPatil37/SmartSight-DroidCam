@@ -136,14 +136,51 @@ def drain_offline_queue():
 
 # --- DROIDCAM CAPTURE LOGIC ---
 def capture_droidcam_frame():
-    """Fetches high-res JPEG frame directly from DroidCam over Tailscale or Local IP."""
-    url = f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/cam/1/frame.jpg"
+    """Fetches high-res JPEG frame directly from DroidCam over Tailscale or Local IP.
+    Supports DroidCam /video MJPEG stream, and fallback endpoints."""
+    # 1. DroidCam MJPEG stream (Primary)
+    video_url = f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/video"
     try:
-        response = requests.get(url, timeout=3.5)
-        if response.status_code == 200 and len(response.content) > 1000:
-            return response.content
-    except Exception as e:
-        print(f"⚠️ [DROIDCAM ERROR] Failed to fetch frame from {url}: {e}")
+        with requests.get(video_url, stream=True, timeout=5) as r:
+            if r.status_code == 200:
+                bytes_data = b""
+                # Read chunks until we isolate a complete JPEG frame (starts with \xff\xd8, ends with \xff\xd9)
+                for chunk in r.iter_content(chunk_size=4096):
+                    bytes_data += chunk
+                    a = bytes_data.find(b'\xff\xd8')
+                    b = bytes_data.find(b'\xff\xd9')
+                    if a != -1 and b != -1 and b > a:
+                        jpg = bytes_data[a:b+2]
+                        if len(jpg) > 1000:
+                            return jpg
+    except Exception:
+        pass
+
+    # 2. Try OpenCV if available in environment
+    try:
+        import cv2
+        cap = cv2.VideoCapture(video_url)
+        if cap.isOpened():
+            ret, frame = cap.read()
+            cap.release()
+            if ret:
+                ok, encoded = cv2.imencode('.jpg', frame)
+                if ok and len(encoded) > 1000:
+                    return encoded.tobytes()
+    except Exception:
+        pass
+
+    # 3. Fallback for static snapshot endpoints (IP Webcam / shot.jpg)
+    for endpoint in ["/cam/1/frame.jpg", "/shot.jpg"]:
+        try:
+            url = f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}{endpoint}"
+            resp = requests.get(url, timeout=3)
+            if resp.status_code == 200 and len(resp.content) > 1000:
+                return resp.content
+        except Exception:
+            pass
+
+    print(f"⚠️ [DROIDCAM ERROR] Could not extract frame from http://{DROIDCAM_IP}:{DROIDCAM_PORT}")
     return None
 
 def execute_capture_command(command_id: str, command_type: str):
@@ -249,8 +286,8 @@ def telemetry_worker():
             # Check DroidCam connectivity
             droid_status = "offline"
             try:
-                r = requests.get(f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/cam/1/frame.jpg", timeout=1.0)
-                if r.status_code == 200:
+                r = requests.get(f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/", timeout=1.5)
+                if r.status_code in (200, 404):
                     droid_status = "online"
             except Exception:
                 droid_status = "offline"
