@@ -440,6 +440,9 @@ function prependVaultArtifact(cap) {
     item.innerHTML = `
         <img src="${cap.media_url}" alt="Recon Pass" loading="lazy">
         <div class="vault-tag-id">PASS #${String(vaultCount).padStart(3, '0')}</div>
+        <button class="vault-del-btn" title="Purge Artifact" onclick="deleteVaultArtifact(event, '${cap.id}', '${cap.media_url}', this.parentElement)">
+            <i class="fas fa-trash-can"></i>
+        </button>
         <div class="vault-tag-time">${utcTime}</div>
     `;
 
