@@ -1167,3 +1167,72 @@ body {
         justify-content: space-between;
     }
 }
+
+/* --- AI TERRAIN REASONING HUD BANNER --- */
+.hud-ai-banner {
+    position: absolute;
+    top: 50px;
+    left: 20px;
+    right: 20px;
+    z-index: 30;
+    background: rgba(6, 10, 16, 0.94);
+    border: 1px solid rgba(0, 240, 255, 0.5);
+    box-shadow: 0 4px 24px rgba(0, 240, 255, 0.2), 0 0 1px rgba(0, 240, 255, 0.6) inset;
+    border-radius: var(--r-micro);
+    backdrop-filter: blur(12px);
+    padding: 12px 16px;
+    animation: fadeInDown 0.3s ease-out;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ai-banner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    padding-bottom: 6px;
+}
+
+.ai-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--c-cyan);
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--c-text-muted);
+    letter-spacing: 0.08em;
+}
+
+.ai-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--c-text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.ai-close-btn:hover {
+    color: #fff;
+}
+
+.ai-banner-text {
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #e6f7ff;
+}

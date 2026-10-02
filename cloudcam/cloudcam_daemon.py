@@ -33,6 +33,7 @@ DROIDCAM_IP = os.getenv("DROIDCAM_IP", "100.x.y.z").strip()
 DROIDCAM_PORT = os.getenv("DROIDCAM_PORT", "4747").strip()
 LIVE_FEED_INTERVAL = float(os.getenv("LIVE_FEED_INTERVAL", "0.4"))   # seconds between live relay frames
 LIVE_FEED_PATH = f"{DEVICE_ID}/live/latest.jpg"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 LOCAL_CAPTURE_DIR = Path(os.getenv("LOCAL_CAPTURE_DIR", str(BASE_DIR / "captures")))
 LOCAL_CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -279,6 +280,45 @@ def old_capture_droidcam_frame():
     print(f"   → Ensure DroidCam is OPEN on your phone and camera is streaming.")
     return None
 
+def analyze_terrain_with_gemini(image_bytes: bytes) -> str:
+    """Invokes Google Gemini 2.5 Flash multimodal vision model to reason about obstacles and terrain."""
+    if not GEMINI_API_KEY:
+        return "Gemini API key not configured in .env"
+    print("🧠 [GEMINI AI] Sending optical frame to Gemini 2.5 Flash for terrain reasoning...")
+    try:
+        import base64
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        prompt = (
+            "You are the AI Tactical Reconnaissance & Obstacle Reasoner for SmartSight. "
+            "Analyze this camera frame from the wearer forward viewpoint. "
+            "Identify: 1) Key objects, hazards or obstacles in the wearer path; "
+            "2) Distance and ground/path clearance; "
+            "3) Safe navigation guidance. Provide a crisp, tactical summary in 2-3 concise sentences."
+        )
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inlineData": {"mimeType": "image/jpeg", "data": b64_image}}
+                ]
+            }]
+        }
+        res = requests.post(url, json=payload, timeout=12)
+        if res.status_code == 200:
+            data = res.json()
+            reasoning = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            print(f"🧠 [GEMINI AI RESULT] {reasoning}")
+            return reasoning
+        else:
+            err = f"Gemini API error ({res.status_code}): {res.text[:100]}"
+            print(f"⚠️ [GEMINI ERROR] {err}")
+            return err
+    except Exception as e:
+        err = f"Gemini reasoning fault: {e}"
+        print(f"⚠️ [GEMINI FAULT] {err}")
+        return err
+
 def execute_capture_command(command_id: str, command_type: str):
     """Executes capture command triggered remotely by Control Centre."""
     print(f"🚀 [COMMAND DISPATCH] Executing '{command_type}' (ID: {command_id})...")
@@ -334,10 +374,16 @@ def execute_capture_command(command_id: str, command_type: str):
             "synced_from_offline": False
         }).execute()
 
+        payload_dict = {"url": public_url, "file": filename}
+        if command_type == "ai_inspect":
+            ai_text = analyze_terrain_with_gemini(frame_bytes)
+            payload_dict["ai_reasoning"] = ai_text
+            payload_dict["model"] = "gemini-2.5-flash"
+
         supabase.table("device_commands").update({
             "status": "completed",
             "executed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "payload": {"url": public_url, "file": filename}
+            "payload": payload_dict
         }).eq("id", command_id).execute()
         print(f"✨ [SUCCESS] Capture completed and published: {public_url}")
 

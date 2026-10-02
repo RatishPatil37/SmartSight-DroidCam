@@ -8,6 +8,7 @@ const DEFAULT_URL = "https://dejkgmyhqgggrfjhynys.supabase.co";
 const DEFAULT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlamtnbXlocWdnZ3Jmamh5bnlzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDk1MjU5MCwiZXhwIjoyMTA2NTI4NTkwfQ.bj6zKKqbT6d840XRGCmvaPy4zN5SUW2M6cxm1cMqtbQ";
 const DEFAULT_DEVICE = "smartsight-alpha-01";
 const DEFAULT_BUCKET = "cloudcam_data";
+const DEFAULT_GEMINI_KEY = "";
 const DEFAULT_DROIDCAM_STREAM = "http://100.126.9.118:4747/video";
 
 let savedUrl = localStorage.getItem("laep_sb_url");
@@ -19,6 +20,7 @@ let config = {
     supabaseUrl: savedUrl || DEFAULT_URL,
     supabaseKey: savedKey || DEFAULT_KEY,
     bucket: DEFAULT_BUCKET,
+    geminiKey: localStorage.getItem("laep_gemini_key") || DEFAULT_GEMINI_KEY,
     deviceId: localStorage.getItem("laep_device_id") || DEFAULT_DEVICE,
     droidcamStreamUrl: localStorage.getItem("laep_droidcam_url") || DEFAULT_DROIDCAM_STREAM
 };
@@ -258,6 +260,10 @@ function setupRealtimeSubscriptions() {
                 resetCommandButtons();
                 if (cmd.status === "completed") {
                     logEvent(`MISSION [${cmd.command_type.toUpperCase()}] CONFIRMED & EXECUTED`, "ack");
+                    if (cmd.command_type === "ai_inspect" && cmd.payload && cmd.payload.ai_reasoning) {
+                        showAITerrainHUD(cmd.payload.ai_reasoning);
+                        logEvent(cmd.payload.ai_reasoning, "ack", "[GEMINI_AI]");
+                    }
                 } else if (cmd.status === "failed") {
                     logEvent(`MISSION FAILED: [${cmd.command_type.toUpperCase()}] REASON: ${cmd.error_message || "TIMEOUT"}`, "err");
                 }
@@ -279,6 +285,11 @@ async function dispatchMission(commandType) {
     }
 
     setButtonExecuting(commandType);
+    // If AI inspect, show immediate feedback on HUD
+    if (commandType === 'ai_inspect') {
+        showAITerrainHUD("Initiating Gemini 2.5 Flash multimodal terrain scan on target unit...");
+    }
+
     logEvent(`INJECTING MISSION PACKET: [${commandType.toUpperCase()}] -> UNIT [${config.deviceId}]`, "cmd");
 
     const tStart = performance.now();
@@ -303,12 +314,23 @@ function setButtonExecuting(commandType) {
     if (commandType === 'capture_photo') {
         const badge = document.getElementById("badge-snap");
         if (badge) badge.innerText = "EXECUTING...";
+    } else if (commandType === 'ai_inspect') {
+        const btnAi = document.getElementById("btn-ai");
+        if (btnAi) {
+            const title = btnAi.querySelector(".action-title");
+            if (title) title.innerText = "REASONING [GEMINI]...";
+        }
     }
 }
 
 function resetCommandButtons() {
     const badge = document.getElementById("badge-snap");
     if (badge) badge.innerText = "EXEC [CMD-01]";
+    const btnAi = document.getElementById("btn-ai");
+    if (btnAi) {
+        const title = btnAi.querySelector(".action-title");
+        if (title) title.innerText = "AI TERRAIN REASONING";
+    }
 }
 
 // --- DIRECT STREAM / CLOUD CAPTURE MODES ---
@@ -363,6 +385,23 @@ function toggleCloudFeed() {
     if (btnLive) btnLive.classList.remove("active");
     if (lastCloudImageUrl) { img.src = lastCloudImageUrl; }
     logEvent("DISPLAYING CLOUD SATELLITE CAPTURES FROM SUPABASE", "sys");
+}
+
+
+function showAITerrainHUD(text) {
+    const banner = document.getElementById("hud-ai-banner");
+    const textField = document.getElementById("hud-ai-text");
+    if (banner && textField) {
+        textField.innerText = text;
+        banner.style.display = "block";
+        if (window._aiBannerTimer) clearTimeout(window._aiBannerTimer);
+        window._aiBannerTimer = setTimeout(() => { banner.style.display = "none"; }, 25000);
+    }
+}
+
+function closeAIBanner() {
+    const banner = document.getElementById("hud-ai-banner");
+    if (banner) banner.style.display = "none";
 }
 
 // --- VIEWPORT & RECON FILMSTRIP ---
@@ -444,6 +483,8 @@ function openConfigModal() {
     document.getElementById("cfg-url").value = config.supabaseUrl.includes("your-project") ? "" : config.supabaseUrl;
     document.getElementById("cfg-key").value = config.supabaseKey.includes("your-anon-key") ? "" : config.supabaseKey;
     document.getElementById("cfg-device").value = config.deviceId;
+    const gKeyInput = document.getElementById("cfg-gemini-key");
+    if (gKeyInput) gKeyInput.value = config.geminiKey || "";
     document.getElementById("config-modal").style.display = "flex";
 }
 
@@ -468,6 +509,11 @@ function saveConfiguration() {
     localStorage.setItem("laep_sb_url", config.supabaseUrl);
     localStorage.setItem("laep_sb_key", config.supabaseKey);
     localStorage.setItem("laep_device_id", config.deviceId);
+    const gKeyInput = document.getElementById("cfg-gemini-key");
+    if (gKeyInput && gKeyInput.value.trim()) {
+        config.geminiKey = gKeyInput.value.trim();
+        localStorage.setItem("laep_gemini_key", config.geminiKey);
+    }
 
     closeConfigModal();
     logEvent("SATELLITE GROUND LINK CREDENTIALS SAVED // REINITIALIZING...", "sys");

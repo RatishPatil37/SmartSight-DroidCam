@@ -153,6 +153,17 @@
                         <div class="tag-row"><span class="tag-key">FRAME_TIMESTAMP:</span> <span class="tag-val text-ice" id="hud-frame-ts">--:--:-- UTC</span></div>
                     </div>
 
+                                        <!-- Tactical Gemini AI Reasoning HUD Overlay -->
+                    <div class="hud-ai-banner" id="hud-ai-banner" style="display: none;">
+                        <div class="ai-banner-header">
+                            <span class="ai-chip"><i class="fas fa-brain"></i> GEMINI 2.5 FLASH // MULTIMODAL AI</span>
+                            <span class="ai-title">OBSTACLE & TERRAIN ASSESSMENT</span>
+                            <button class="ai-close-btn" onclick="closeAIBanner()" title="Dismiss">&times;</button>
+                        </div>
+                        <div class="ai-banner-text" id="hud-ai-text">
+                            Analyzing tactical scene...
+                        </div>
+                    </div>
                     <!-- Optical Image Feed -->
                     <img id="active-viewport-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1280' height='720' viewBox='0 0 1280 720'><rect width='1280' height='720' fill='%23050608'/><text x='50%25' y='50%25' fill='%23b8f0ff' font-family='Space Grotesk, monospace' font-size='22' text-anchor='middle' dominant-baseline='middle' letter-spacing='0.15em'>OPTICAL SENSOR CALIBRATING // AWAITING SATELLITE PASS</text></svg>" alt="Optical Recon Stream">
 
@@ -395,6 +406,10 @@
                     <input type="password" id="cfg-key" placeholder="eyJhbGciOi..." autocomplete="off" spellcheck="false">
                 </div>
 
+                                <div class="laep-input-group">
+                    <label>GOOGLE GEMINI API KEY (MULTIMODAL AI REASONING)</label>
+                    <input type="password" id="cfg-gemini-key" placeholder="AQ.Ab8... / AIzaSy..." autocomplete="off" spellcheck="false">
+                </div>
                 <div class="laep-input-group">
                     <label>TARGET WEARER DEVICE ID</label>
                     <input type="text" id="cfg-device" value="smartsight-alpha-01" autocomplete="off" spellcheck="false">
@@ -408,6 +423,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=4.0"></script>
+    <script src="app.js?v=5.0"></script>
 </body>
 </html>
