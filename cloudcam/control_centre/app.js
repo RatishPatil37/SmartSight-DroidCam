@@ -1,4 +1,4 @@
-// ==========================================================
+﻿// ==========================================================
 // LAEP // SMARTSIGHT MISSION ENGINE (app.js)
 // Space Exploration & Telemetry Bus Controller
 // ==========================================================
@@ -21,7 +21,7 @@ let config = {
     droidcamStreamUrl: localStorage.getItem("laep_droidcam_url") || DEFAULT_DROIDCAM_STREAM
 };
 
-let supabase = null;
+let supabaseClient = null;
 let vaultCount = 0;
 let missionStartTime = Date.now();
 let activeLogFilter = 'all';
@@ -165,7 +165,7 @@ function initLAEP() {
     }
 
     try {
-        supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
         const endpointSlug = config.supabaseUrl.split('//')[1].split('.')[0].toUpperCase();
         logEvent(`ORBITAL SATELLITE LINK ONLINE // NODE: [${endpointSlug}]`, "ack");
         
@@ -262,7 +262,7 @@ function setupRealtimeSubscriptions() {
 
 // --- MISSION DISPATCH DECK ---
 async function dispatchMission(commandType) {
-    if (!supabase) {
+    if (!supabaseClient) {
         logEvent("CANNOT DISPATCH: GROUND STATION UNLINKED. PRESS ⌘K.", "err");
         openConfigModal();
         return;
@@ -273,7 +273,7 @@ async function dispatchMission(commandType) {
 
     const tStart = performance.now();
     try {
-        const { data, error } = await supabase.from("device_commands").insert({
+        const { data, error } = await supabaseClient.from("device_commands").insert({
             device_id: config.deviceId,
             command_type: commandType,
             status: "pending"
@@ -374,7 +374,7 @@ function prependVaultArtifact(cap) {
 }
 
 async function loadPastCaptures() {
-    if (!supabase) return;
+    if (!supabaseClient) return;
     try {
         logEvent("RETRIEVING HISTORICAL IMAGERY ARTIFACTS FROM S3 BUCKET...", "sys");
         const { data, error } = await supabase
