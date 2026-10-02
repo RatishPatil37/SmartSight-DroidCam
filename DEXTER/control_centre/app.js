@@ -1,4 +1,4 @@
-﻿// ==========================================================
+// ==========================================================
 // LAEP // SMARTSIGHT MISSION ENGINE (app.js)
 // Space Exploration & Telemetry Bus Controller
 // ==========================================================
@@ -7,6 +7,7 @@
 const DEFAULT_URL = "https://dejkgmyhqgggrfjhynys.supabase.co";
 const DEFAULT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlamtnbXlocWdnZ3Jmamh5bnlzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDk1MjU5MCwiZXhwIjoyMTA2NTI4NTkwfQ.bj6zKKqbT6d840XRGCmvaPy4zN5SUW2M6cxm1cMqtbQ";
 const DEFAULT_DEVICE = "smartsight-alpha-01";
+const DEFAULT_BUCKET = "cloudcam_data";
 const DEFAULT_DROIDCAM_STREAM = "http://100.126.9.118:4747/video";
 
 let savedUrl = localStorage.getItem("laep_sb_url");
@@ -17,6 +18,7 @@ if (savedKey && (savedKey.includes("your-anon-key") || savedKey.includes("your-s
 let config = {
     supabaseUrl: savedUrl || DEFAULT_URL,
     supabaseKey: savedKey || DEFAULT_KEY,
+    bucket: DEFAULT_BUCKET,
     deviceId: localStorage.getItem("laep_device_id") || DEFAULT_DEVICE,
     droidcamStreamUrl: localStorage.getItem("laep_droidcam_url") || DEFAULT_DROIDCAM_STREAM
 };
@@ -323,7 +325,8 @@ function toggleDirectStream() {
     if (btnCloud) btnCloud.classList.remove("active");
 
     // Supabase live relay URL (HTTPS-safe - no mixed content block)
-    const liveUrl = config.supabaseUrl + "/storage/v1/object/public/" + config.bucket + "/" + config.deviceId + "/live/latest.jpg";
+    const bucket = config.bucket || "cloudcam_data";
+    const liveUrl = config.supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + config.deviceId + "/live/latest.jpg";
 
     // Stop any existing polling
     if (liveFeedInterval) { clearInterval(liveFeedInterval); liveFeedInterval = null; }
