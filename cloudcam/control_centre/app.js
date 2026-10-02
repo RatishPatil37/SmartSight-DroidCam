@@ -4,10 +4,21 @@
 // ==========================================================
 
 // --- CONFIGURATION STATE ---
+const DEFAULT_URL = "https://dejkgmyhqgggrfjhynys.supabase.co";
+const DEFAULT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlamtnbXlocWdnZ3Jmamh5bnlzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDk1MjU5MCwiZXhwIjoyMTA2NTI4NTkwfQ.bj6zKKqbT6d840XRGCmvaPy4zN5SUW2M6cxm1cMqtbQ";
+const DEFAULT_DEVICE = "smartsight-alpha-01";
+const DEFAULT_DROIDCAM_STREAM = "http://100.126.9.118:4747/video";
+
+let savedUrl = localStorage.getItem("laep_sb_url");
+let savedKey = localStorage.getItem("laep_sb_key");
+if (savedUrl && savedUrl.includes("your-project")) savedUrl = null;
+if (savedKey && (savedKey.includes("your-anon-key") || savedKey.includes("your-supabase"))) savedKey = null;
+
 let config = {
-    supabaseUrl: localStorage.getItem("laep_sb_url") || "https://your-project.supabase.co",
-    supabaseKey: localStorage.getItem("laep_sb_key") || "your-anon-key-here",
-    deviceId: localStorage.getItem("laep_device_id") || "smartsight-alpha-01"
+    supabaseUrl: savedUrl || DEFAULT_URL,
+    supabaseKey: savedKey || DEFAULT_KEY,
+    deviceId: localStorage.getItem("laep_device_id") || DEFAULT_DEVICE,
+    droidcamStreamUrl: localStorage.getItem("laep_droidcam_url") || DEFAULT_DROIDCAM_STREAM
 };
 
 let supabase = null;
@@ -290,13 +301,50 @@ function resetCommandButtons() {
     if (badge) badge.innerText = "EXEC [CMD-01]";
 }
 
+// --- DIRECT STREAM / CLOUD CAPTURE MODES ---
+let isDirectStreamActive = false;
+let lastCloudImageUrl = null;
+
+function toggleDirectStream() {
+    const img = document.getElementById("active-viewport-img");
+    isDirectStreamActive = true;
+    const btnLive = document.getElementById("pill-live-stream");
+    const btnCloud = document.getElementById("pill-cloud-feed");
+    if (btnLive) btnLive.classList.add("active");
+    if (btnCloud) btnCloud.classList.remove("active");
+    
+    img.src = config.droidcamStreamUrl;
+    img.onerror = () => {
+        logEvent("NOTICE: If direct stream doesn't load on Vercel HTTPS, allow mixed content or open locally: python3 -m http.server 8080", "warn");
+    };
+    logEvent(`ENGAGING DIRECT 30 FPS DROIDCAM MJPEG STREAM -> ${config.droidcamStreamUrl}`, "sys");
+}
+
+function toggleCloudFeed() {
+    const img = document.getElementById("active-viewport-img");
+    isDirectStreamActive = false;
+    const btnLive = document.getElementById("pill-live-stream");
+    const btnCloud = document.getElementById("pill-cloud-feed");
+    if (btnCloud) btnCloud.classList.add("active");
+    if (btnLive) btnLive.classList.remove("active");
+    
+    if (lastCloudImageUrl) {
+        img.src = lastCloudImageUrl;
+    }
+    logEvent("DISPLAYING CLOUD SATELLITE CAPTURES FROM SUPABASE", "sys");
+}
+
 // --- VIEWPORT & RECON FILMSTRIP ---
 function updateOpticalViewport(url, timestamp) {
-    const img = document.getElementById("active-viewport-img");
-    img.src = url;
+    lastCloudImageUrl = url;
+    if (!isDirectStreamActive) {
+        const img = document.getElementById("active-viewport-img");
+        img.src = url;
+    }
 
     const formatted = new Date(timestamp).toUTCString().slice(17, 25) + " UTC";
-    document.getElementById("hud-frame-ts").innerText = formatted;
+    const tsEl = document.getElementById("hud-frame-ts");
+    if (tsEl) tsEl.innerText = formatted;
 }
 
 function prependVaultArtifact(cap) {

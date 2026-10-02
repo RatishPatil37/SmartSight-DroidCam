@@ -158,11 +158,14 @@
 
                     <!-- Optical Spectrum Control Bar -->
                     <div class="optical-spectrum-bar">
-                        <span class="spectrum-label">SPECTRUM:</span>
+                        <span class="spectrum-label">MODE:</span>
+                        <button class="spectrum-pill active" id="pill-cloud-feed" onclick="toggleCloudFeed()"><i class="fas fa-satellite"></i> CLOUD CAPTURES</button>
+                        <button class="spectrum-pill" id="pill-live-stream" onclick="toggleDirectStream()"><i class="fas fa-video"></i> DIRECT LIVE STREAM</button>
+                        <span class="spectrum-label" style="margin-left: 12px;">SPECTRUM:</span>
                         <button class="spectrum-pill active" onclick="setSpectrum('rgb')">RGB RAW</button>
-                        <button class="spectrum-pill" onclick="setSpectrum('flir')">FLIR THERMAL</button>
-                        <button class="spectrum-pill" onclick="setSpectrum('nvg')">NVG PHOSPHOR</button>
-                        <button class="spectrum-pill" onclick="setSpectrum('polar')">RADAR POLAR</button>
+                        <button class="spectrum-pill" onclick="setSpectrum('flir')">FLIR</button>
+                        <button class="spectrum-pill" onclick="setSpectrum('nvg')">NVG</button>
+                        <button class="spectrum-pill" onclick="setSpectrum('polar')">POLAR</button>
                     </div>
                 </div>
 
@@ -241,8 +244,8 @@
                         <div class="btn-content">
                             <div class="btn-glyph"><i class="fas fa-camera"></i></div>
                             <div class="btn-labels">
-                                <span class="btn-headline">CAPTURE OPTICAL SNAPSHOT</span>
-                                <span class="btn-subtext">DIRECT TAILSCALE 1080P PULL TO SUPABASE S3</span>
+                                <span class="btn-headline">TRIGGER RECON SNAPSHOT</span>
+                                <span class="btn-subtext">DIRECT TAILSCALE 1080P PULL TO SUPABASE S3 (CAPTURE PHOTO)</span>
                             </div>
                             <span class="btn-badge" id="badge-snap">EXEC [CMD-01]</span>
                         </div>
