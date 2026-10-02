@@ -542,3 +542,145 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("DOMContentLoaded", () => {
     initLAEP();
 });
+
+
+// ==========================================================
+// VAULT PURGE / DELETE ARTIFACT OPERATIONS
+// ==========================================================
+async function deleteVaultArtifact(event, captureId, mediaUrl, cardElement) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const confirmPurge = window.confirm("⚠️ PURGE RECON ARTIFACT?\nPermanently delete this pass from cloud vault & database?");
+    if (!confirmPurge) return;
+
+    try {
+        logEvent(`PURGING ARTIFACT [${String(captureId || mediaUrl).slice(0, 8)}]...`, "cmd");
+        if (cardElement) {
+            cardElement.style.opacity = "0.3";
+            cardElement.style.pointerEvents = "none";
+        }
+
+        // 1. Delete record from Supabase database
+        if (supabaseClient) {
+            let query = supabaseClient.from("captures").delete();
+            if (captureId && captureId !== "undefined" && captureId !== "null" && captureId !== "") {
+                query = query.eq("id", captureId);
+            } else if (mediaUrl) {
+                query = query.eq("media_url", mediaUrl);
+            }
+            const { error: dbErr } = await query;
+            if (dbErr) {
+                console.warn("Database capture delete fault:", dbErr);
+            }
+
+            // 2. Remove physical object from Supabase storage bucket if URL contains it
+            try {
+                const bucket = config.bucket || "cloudcam_data";
+                if (mediaUrl && mediaUrl.includes(bucket)) {
+                    const parts = mediaUrl.split(`${bucket}/`);
+                    if (parts.length > 1) {
+                        const storagePath = parts[1].split('?')[0];
+                        await supabaseClient.storage.from(bucket).remove([storagePath]);
+                    }
+                }
+            } catch (storageErr) {
+                console.warn("Storage deletion warning:", storageErr);
+            }
+        }
+
+        // 3. Animate DOM removal
+        if (cardElement) {
+            cardElement.style.transform = "scale(0.8)";
+            cardElement.style.transition = "all 0.25s ease";
+            setTimeout(() => {
+                cardElement.remove();
+                vaultCount = Math.max(0, vaultCount - 1);
+                const counterCaptures = document.getElementById("counter-captures");
+                if (counterCaptures) counterCaptures.innerText = vaultCount;
+                const counterVaultTotal = document.getElementById("counter-vault-total");
+                if (counterVaultTotal) counterVaultTotal.innerText = `${vaultCount} ARTIFACTS RECORDED`;
+
+                const strip = document.getElementById("vault-filmstrip");
+                if (strip && strip.querySelectorAll(".vault-card-item").length === 0) {
+                    strip.innerHTML = `
+                        <div class="vault-empty-state">
+                            <i class="fas fa-satellite"></i>
+                            <span>NO ARCHIVAL RECON PASSES RECORDED. EXECUTE [CMD-01] TO STORE FIRST ARTIFACT.</span>
+                        </div>
+                    `;
+                }
+            }, 250);
+        }
+
+        logEvent(`[PURGE_ACK] ARTIFACT PERMANENTLY REMOVED FROM VAULT`, "ack");
+    } catch (err) {
+        logEvent(`PURGE FAULT: ${err.message}`, "err");
+        if (cardElement) {
+            cardElement.style.opacity = "1";
+            cardElement.style.pointerEvents = "auto";
+        }
+    }
+}
+
+async function purgeAllVaultArtifacts() {
+    const confirmAll = window.confirm(`⚠️ PURGE ALL RECON ARTIFACTS?\nAre you sure you want to permanently delete ALL recorded captures for unit [${config.deviceId}]? This action cannot be undone.`);
+    if (!confirmAll) return;
+
+    try {
+        logEvent(`PURGING ALL VAULT RECORDS FOR UNIT: [${config.deviceId}]...`, "cmd");
+        if (supabaseClient) {
+            // First fetch files to remove from storage
+            try {
+                const { data: filesToDelete } = await supabaseClient
+                    .from("captures")
+                    .select("media_url")
+                    .eq("device_id", config.deviceId);
+                
+                if (filesToDelete && filesToDelete.length > 0) {
+                    const bucket = config.bucket || "cloudcam_data";
+                    const storagePaths = filesToDelete
+                        .filter(f => f.media_url && f.media_url.includes(`${bucket}/`))
+                        .map(f => f.media_url.split(`${bucket}/`)[1].split('?')[0]);
+                    if (storagePaths.length > 0) {
+                        await supabaseClient.storage.from(bucket).remove(storagePaths);
+                    }
+                }
+            } catch (storErr) {
+                console.warn("Storage mass deletion warning:", storErr);
+            }
+
+            // Then delete rows from table
+            const { error } = await supabaseClient
+                .from("captures")
+                .delete()
+                .eq("device_id", config.deviceId);
+            if (error) throw error;
+        }
+
+        const strip = document.getElementById("vault-filmstrip");
+        if (strip) {
+            strip.innerHTML = `
+                <div class="vault-empty-state">
+                    <i class="fas fa-satellite"></i>
+                    <span>NO ARCHIVAL RECON PASSES RECORDED. EXECUTE [CMD-01] TO STORE FIRST ARTIFACT.</span>
+                </div>
+            `;
+        }
+        vaultCount = 0;
+        const counterCaptures = document.getElementById("counter-captures");
+        if (counterCaptures) counterCaptures.innerText = 0;
+        const counterVaultTotal = document.getElementById("counter-vault-total");
+        if (counterVaultTotal) counterVaultTotal.innerText = `0 ARTIFACTS RECORDED`;
+
+        logEvent(`[PURGE_ALL_ACK] ALL VAULT ARTIFACTS PURGED FOR UNIT [${config.deviceId}]`, "ack");
+    } catch (err) {
+        logEvent(`PURGE ALL FAULT: ${err.message}`, "err");
+    }
+}
+
+// Ensure global attachment for inline onclick handlers
+window.deleteVaultArtifact = deleteVaultArtifact;
+window.purgeAllVaultArtifacts = purgeAllVaultArtifacts;
