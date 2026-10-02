@@ -181,7 +181,7 @@ function setupRealtimeSubscriptions() {
     logEvent(`SUBSCRIBING REALTIME BUS FOR UNIT: [${config.deviceId}]...`, "sys");
 
     // 1. Telemetry Channel (CPU, Temp, RAM, DroidCam, Queue)
-    supabase
+    supabaseClient
         .channel("laep-telemetry")
         .on("postgres_changes", { event: "*", schema: "public", table: "device_telemetry" }, (payload) => {
             const data = payload.new;
@@ -223,7 +223,7 @@ function setupRealtimeSubscriptions() {
         .subscribe();
 
     // 2. Captures Channel (Live Imagery Burst)
-    supabase
+    supabaseClient
         .channel("laep-captures")
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "captures" }, (payload) => {
             const cap = payload.new;
@@ -240,7 +240,7 @@ function setupRealtimeSubscriptions() {
         .subscribe();
 
     // 3. Mission Command Acknowledgments
-    supabase
+    supabaseClient
         .channel("laep-commands")
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "device_commands" }, (payload) => {
             const cmd = payload.new;
