@@ -281,14 +281,14 @@ def old_capture_droidcam_frame():
     return None
 
 def analyze_terrain_with_gemini(image_bytes: bytes) -> str:
-    """Invokes Google Gemini 2.5 Flash multimodal vision model to reason about obstacles and terrain."""
+    """Invokes Google Gemini 3.7 Flash multimodal vision model to reason about obstacles and terrain."""
     if not GEMINI_API_KEY:
         return "Gemini API key not configured in .env"
-    print("🧠 [GEMINI AI] Sending optical frame to Gemini 2.5 Flash for terrain reasoning...")
+    print("🧠 [GEMINI AI] Sending optical frame to Gemini 3.7 Flash for terrain reasoning...")
     try:
         import base64
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key={GEMINI_API_KEY}"
         prompt = (
             "You are the AI Tactical Reconnaissance & Obstacle Reasoner for SmartSight. "
             "Analyze this camera frame from the wearer forward viewpoint. "
@@ -304,7 +304,7 @@ def analyze_terrain_with_gemini(image_bytes: bytes) -> str:
                 ]
             }]
         }
-        res = requests.post(url, json=payload, timeout=12)
+        res = requests.post(url, json=payload, timeout=25)
         if res.status_code == 200:
             data = res.json()
             reasoning = data["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -378,7 +378,7 @@ def execute_capture_command(command_id: str, command_type: str):
         if command_type == "ai_inspect":
             ai_text = analyze_terrain_with_gemini(frame_bytes)
             payload_dict["ai_reasoning"] = ai_text
-            payload_dict["model"] = "gemini-2.5-flash"
+            payload_dict["model"] = "gemini-3.7-flash"
 
         supabase.table("device_commands").update({
             "status": "completed",

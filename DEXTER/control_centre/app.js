@@ -287,7 +287,7 @@ async function dispatchMission(commandType) {
     setButtonExecuting(commandType);
     // If AI inspect, show immediate feedback on HUD
     if (commandType === 'ai_inspect') {
-        showAITerrainHUD("Initiating Gemini 2.5 Flash multimodal terrain scan on target unit...");
+        showAITerrainHUD("Initiating Gemini 3.7 Flash multimodal terrain scan on target unit...");
     }
 
     logEvent(`INJECTING MISSION PACKET: [${commandType.toUpperCase()}] -> UNIT [${config.deviceId}]`, "cmd");
