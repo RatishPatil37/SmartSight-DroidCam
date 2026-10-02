@@ -281,14 +281,13 @@ def old_capture_droidcam_frame():
     return None
 
 def analyze_terrain_with_gemini(image_bytes: bytes) -> str:
-    """Invokes Google Gemini 3.7 Flash multimodal vision model to reason about obstacles and terrain."""
+    """Invokes Google Gemini 3.6 Flash multimodal vision model with automatic fallback."""
     if not GEMINI_API_KEY:
         return "Gemini API key not configured in .env"
-    print("🧠 [GEMINI AI] Sending optical frame to Gemini 3.7 Flash for terrain reasoning...")
+    print("🧠 [GEMINI AI] Sending optical frame to Gemini 3.6 Flash for terrain reasoning...")
     try:
         import base64
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key={GEMINI_API_KEY}"
         prompt = (
             "You are the AI Tactical Reconnaissance & Obstacle Reasoner for SmartSight. "
             "Analyze this camera frame from the wearer forward viewpoint. "
@@ -304,16 +303,29 @@ def analyze_terrain_with_gemini(image_bytes: bytes) -> str:
                 ]
             }]
         }
-        res = requests.post(url, json=payload, timeout=25)
-        if res.status_code == 200:
-            data = res.json()
-            reasoning = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            print(f"🧠 [GEMINI AI RESULT] {reasoning}")
-            return reasoning
-        else:
-            err = f"Gemini API error ({res.status_code}): {res.text[:100]}"
-            print(f"⚠️ [GEMINI ERROR] {err}")
-            return err
+        
+        # Primary: gemini-3.6-flash, Fallback: gemini-2.5-flash
+        models_to_try = ["gemini-3.6-flash", "gemini-2.5-flash"]
+        last_error = ""
+        
+        for model_name in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+            res = requests.post(url, json=payload, timeout=20)
+            if res.status_code == 200:
+                data = res.json()
+                reasoning = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                print(f"🧠 [GEMINI AI RESULT ({model_name})] {reasoning}")
+                return reasoning
+            elif res.status_code in (503, 429):
+                print(f"⚠️ [GEMINI BUSY] {model_name} returned {res.status_code}. Switching to standby model...")
+                last_error = f"Gemini ({model_name}) busy ({res.status_code})"
+                continue
+            else:
+                last_error = f"Gemini API error ({res.status_code}): {res.text[:100]}"
+                break
+                
+        print(f"⚠️ [GEMINI ERROR] {last_error}")
+        return last_error
     except Exception as e:
         err = f"Gemini reasoning fault: {e}"
         print(f"⚠️ [GEMINI FAULT] {err}")
@@ -378,7 +390,7 @@ def execute_capture_command(command_id: str, command_type: str):
         if command_type == "ai_inspect":
             ai_text = analyze_terrain_with_gemini(frame_bytes)
             payload_dict["ai_reasoning"] = ai_text
-            payload_dict["model"] = "gemini-3.7-flash"
+            payload_dict["model"] = "gemini-3.6-flash"
 
         supabase.table("device_commands").update({
             "status": "completed",
