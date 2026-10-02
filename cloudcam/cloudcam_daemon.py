@@ -1,4 +1,4 @@
-"""
+﻿"""
 SmartSight CloudCam Daemon (Debian Trixie / RPi 4 & 5)
 Handles:
 1. Tailscale DroidCam HTTP snapshot fetching
@@ -137,26 +137,54 @@ def drain_offline_queue():
 # --- DROIDCAM CAPTURE LOGIC ---
 def capture_droidcam_frame():
     """Fetches high-res JPEG frame directly from DroidCam over Tailscale or Local IP.
-    Supports DroidCam /video MJPEG stream, and fallback endpoints."""
-    # 1. DroidCam MJPEG stream (Primary)
-    video_url = f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/video"
-    try:
-        with requests.get(video_url, stream=True, timeout=5) as r:
-            if r.status_code == 200:
-                bytes_data = b""
-                # Read chunks until we isolate a complete JPEG frame (starts with \xff\xd8, ends with \xff\xd9)
-                for chunk in r.iter_content(chunk_size=4096):
-                    bytes_data += chunk
-                    a = bytes_data.find(b'\xff\xd8')
-                    b = bytes_data.find(b'\xff\xd9')
-                    if a != -1 and b != -1 and b > a:
-                        jpg = bytes_data[a:b+2]
-                        if len(jpg) > 1000:
-                            return jpg
-    except Exception:
-        pass
+    DroidCam serves MJPEG on /video ONLY when the app is open & camera is active.
+    If /video returns a small HTML page (<2KB), DroidCam is in standby mode."""
+    base_url = f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}"
+    video_url = f"{base_url}/video"
 
-    # 2. Try OpenCV if available in environment
+    # --- Step 0: Check if DroidCam is reachable and in streaming mode ---
+    try:
+        probe = requests.get(video_url, stream=True, timeout=6)
+        content_type = probe.headers.get("Content-Type", "")
+        is_mjpeg = "multipart" in content_type or "jpeg" in content_type
+
+        if not is_mjpeg:
+            # DroidCam returned HTML (app in background / screen locked)
+            print(f"📱 [DROIDCAM STANDBY] /video returned Content-Type: '{content_type}' (expected MJPEG).")
+            print(f"   ⚡ ACTION NEEDED: Open DroidCam app on your phone, tap START, keep screen ON.")
+            probe.close()
+
+            # Still try to extract a JPEG in case Content-Type header is wrong
+            bytes_data = b""
+            for chunk in probe.iter_content(chunk_size=4096):
+                bytes_data += chunk
+                if len(bytes_data) > 8192:  # If > 8KB it might be a real stream
+                    a = bytes_data.find(b'\xff\xd8')
+                    b_pos = bytes_data.find(b'\xff\xd9')
+                    if a != -1 and b_pos != -1 and b_pos > a:
+                        jpg = bytes_data[a:b_pos+2]
+                        if len(jpg) > 5000:
+                            return jpg
+                    break
+        else:
+            # Good - it's an MJPEG stream, extract first frame
+            bytes_data = b""
+            for chunk in probe.iter_content(chunk_size=4096):
+                bytes_data += chunk
+                a = bytes_data.find(b'\xff\xd8')
+                b_pos = bytes_data.find(b'\xff\xd9')
+                if a != -1 and b_pos != -1 and b_pos > a:
+                    jpg = bytes_data[a:b_pos+2]
+                    if len(jpg) > 1000:
+                        probe.close()
+                        return jpg
+                if len(bytes_data) > 512 * 1024:  # 512KB safety cap
+                    break
+            probe.close()
+    except Exception as e:
+        print(f"⚠️ [DROIDCAM] /video request failed: {e}")
+
+    # --- Fallback 1: Try OpenCV VideoCapture ---
     try:
         import cv2
         cap = cv2.VideoCapture(video_url)
@@ -170,17 +198,18 @@ def capture_droidcam_frame():
     except Exception:
         pass
 
-    # 3. Fallback for static snapshot endpoints (IP Webcam / shot.jpg)
-    for endpoint in ["/cam/1/frame.jpg", "/shot.jpg"]:
+    # --- Fallback 2: Static snapshot endpoints ---
+    for endpoint in ["/shot.jpg", "/cam/1/frame.jpg", "/jpeg"]:
         try:
-            url = f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}{endpoint}"
-            resp = requests.get(url, timeout=3)
-            if resp.status_code == 200 and len(resp.content) > 1000:
+            resp = requests.get(f"{base_url}{endpoint}", timeout=4)
+            ct = resp.headers.get("Content-Type", "")
+            if resp.status_code == 200 and "image" in ct and len(resp.content) > 1000:
                 return resp.content
         except Exception:
             pass
 
-    print(f"⚠️ [DROIDCAM ERROR] Could not extract frame from http://{DROIDCAM_IP}:{DROIDCAM_PORT}")
+    print(f"⚠️ [DROIDCAM ERROR] Could not extract frame from {base_url}")
+    print(f"   → Ensure DroidCam is OPEN on your phone and camera is streaming.")
     return None
 
 def execute_capture_command(command_id: str, command_type: str):
