@@ -261,7 +261,7 @@ function setupRealtimeSubscriptions() {
                 if (cmd.status === "completed") {
                     logEvent(`MISSION [${cmd.command_type.toUpperCase()}] CONFIRMED & EXECUTED`, "ack");
                     if (cmd.command_type === "ai_inspect" && cmd.payload && cmd.payload.ai_reasoning) {
-                        showAITerrainHUD(cmd.payload.ai_reasoning);
+                        showAITerrainHUD(cmd.payload.ai_reasoning, cmd.payload.model);
                         logEvent(cmd.payload.ai_reasoning, "ack", "[GEMINI_AI]");
                     }
                 } else if (cmd.status === "failed") {
@@ -287,7 +287,7 @@ async function dispatchMission(commandType) {
     setButtonExecuting(commandType);
     // If AI inspect, show immediate feedback on HUD
     if (commandType === 'ai_inspect') {
-        showAITerrainHUD("Initiating Gemini 3.6 Flash multimodal terrain scan on target unit...");
+        showAITerrainHUD("Initiating Gemini multimodal terrain scan (3.6-flash -> 3.5-flash-lite)...", "gemini-3.6-flash");
     }
 
     logEvent(`INJECTING MISSION PACKET: [${commandType.toUpperCase()}] -> UNIT [${config.deviceId}]`, "cmd");
@@ -388,9 +388,13 @@ function toggleCloudFeed() {
 }
 
 
-function showAITerrainHUD(text) {
+function showAITerrainHUD(text, modelName) {
     const banner = document.getElementById("hud-ai-banner");
     const textField = document.getElementById("hud-ai-text");
+    const chip = banner ? banner.querySelector(".ai-chip") : null;
+    if (chip && modelName) {
+        chip.innerHTML = `<i class="fas fa-brain"></i> ${modelName.toUpperCase()} // MULTIMODAL AI`;
+    }
     if (banner && textField) {
         textField.innerText = text;
         banner.style.display = "block";

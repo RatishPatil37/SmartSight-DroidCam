@@ -280,11 +280,11 @@ def old_capture_droidcam_frame():
     print(f"   → Ensure DroidCam is OPEN on your phone and camera is streaming.")
     return None
 
-def analyze_terrain_with_gemini(image_bytes: bytes) -> str:
-    """Invokes Google Gemini 3.6 Flash multimodal vision model with automatic fallback."""
+def analyze_terrain_with_gemini(image_bytes: bytes):
+    """Invokes Google Gemini with fast fallback: 3.6-flash (8s timeout) -> 3.5-flash-lite (10s timeout)."""
     if not GEMINI_API_KEY:
-        return "Gemini API key not configured in .env"
-    print("🧠 [GEMINI AI] Sending optical frame to Gemini 3.6 Flash for terrain reasoning...")
+        return "Gemini API key not configured in .env", "none"
+    print("🧠 [GEMINI AI] Sending optical frame to Gemini AI (Primary: gemini-3.6-flash)...")
     try:
         import base64
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
@@ -303,33 +303,44 @@ def analyze_terrain_with_gemini(image_bytes: bytes) -> str:
                 ]
             }]
         }
-        
-        # Primary: gemini-3.6-flash, Fallback: gemini-2.5-flash
-        models_to_try = ["gemini-3.6-flash", "gemini-2.5-flash"]
+
+        # Sequence: 3.6-flash (primary, 8s) -> 3.5-flash-lite (fast fallback, 10s) -> 2.5-flash-lite
+        models_to_try = [
+            ("gemini-3.6-flash", 8),
+            ("gemini-3.5-flash-lite", 10),
+            ("gemini-2.5-flash-lite", 8)
+        ]
         last_error = ""
-        
-        for model_name in models_to_try:
+
+        for model_name, timeout_secs in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
-            res = requests.post(url, json=payload, timeout=20)
-            if res.status_code == 200:
-                data = res.json()
-                reasoning = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                print(f"🧠 [GEMINI AI RESULT ({model_name})] {reasoning}")
-                return reasoning
-            elif res.status_code in (503, 429):
-                print(f"⚠️ [GEMINI BUSY] {model_name} returned {res.status_code}. Switching to standby model...")
-                last_error = f"Gemini ({model_name}) busy ({res.status_code})"
-                continue
-            else:
-                last_error = f"Gemini API error ({res.status_code}): {res.text[:100]}"
-                break
-                
-        print(f"⚠️ [GEMINI ERROR] {last_error}")
-        return last_error
+            try:
+                print(f"🚀 [GEMINI QUERY] Querying {model_name} (timeout: {timeout_secs}s)...")
+                res = requests.post(url, json=payload, timeout=timeout_secs)
+                if res.status_code == 200:
+                    data = res.json()
+                    reasoning = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    print(f"🧠 [GEMINI AI SUCCESS ({model_name})] {reasoning}")
+                    return reasoning, model_name
+                elif res.status_code in (503, 429):
+                    print(f"⚠️ [GEMINI BUSY ({model_name})] HTTP {res.status_code}. Engaging standby fallback...")
+                    last_error = f"{model_name} busy ({res.status_code})"
+                else:
+                    print(f"⚠️ [GEMINI ERROR ({model_name})] HTTP {res.status_code}: {res.text[:80]}")
+                    last_error = f"{model_name} error ({res.status_code})"
+            except requests.exceptions.Timeout:
+                print(f"⚠️ [GEMINI TIMEOUT ({model_name})] Exceeded {timeout_secs}s. Engaging standby fallback...")
+                last_error = f"{model_name} read timed out ({timeout_secs}s)"
+            except Exception as req_err:
+                print(f"⚠️ [GEMINI NET FAULT ({model_name})] {req_err}. Engaging standby fallback...")
+                last_error = f"{model_name} network fault: {req_err}"
+
+        print(f"❌ [GEMINI ALL FAILED] {last_error}")
+        return f"AI Reasoning unavailable: {last_error}", "failed"
     except Exception as e:
         err = f"Gemini reasoning fault: {e}"
         print(f"⚠️ [GEMINI FAULT] {err}")
-        return err
+        return err, "failed"
 
 def execute_capture_command(command_id: str, command_type: str):
     """Executes capture command triggered remotely by Control Centre."""
@@ -388,9 +399,9 @@ def execute_capture_command(command_id: str, command_type: str):
 
         payload_dict = {"url": public_url, "file": filename}
         if command_type == "ai_inspect":
-            ai_text = analyze_terrain_with_gemini(frame_bytes)
+            ai_text, used_model = analyze_terrain_with_gemini(frame_bytes)
             payload_dict["ai_reasoning"] = ai_text
-            payload_dict["model"] = "gemini-3.6-flash"
+            payload_dict["model"] = used_model
 
         supabase.table("device_commands").update({
             "status": "completed",
