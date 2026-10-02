@@ -312,12 +312,19 @@ def telemetry_worker():
                 except Exception:
                     pass
 
-            # Check DroidCam connectivity
+            # Check DroidCam connectivity — check /video Content-Type to detect REAL stream
             droid_status = "offline"
             try:
-                r = requests.get(f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/", timeout=1.5)
-                if r.status_code in (200, 404):
-                    droid_status = "online"
+                r = requests.get(
+                    f"http://{DROIDCAM_IP}:{DROIDCAM_PORT}/video",
+                    stream=True, timeout=3
+                )
+                ct = r.headers.get("Content-Type", "")
+                r.close()
+                if "multipart" in ct or "image" in ct:
+                    droid_status = "online"   # Camera is ACTIVELY streaming
+                elif r.status_code in (200, 302, 404):
+                    droid_status = "standby"  # Server up but not streaming
             except Exception:
                 droid_status = "offline"
 

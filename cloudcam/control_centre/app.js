@@ -210,12 +210,20 @@ function setupRealtimeSubscriptions() {
                 document.getElementById("ribbon-comms-link").innerText = "DIRECT-TO-PI (NOMINAL)";
                 document.getElementById("ribbon-comms-link").className = "ribbon-val text-teal";
 
-                // DroidCam Status
-                const isCamOnline = data.droidcam_status === "online";
+                // DroidCam Status (online=streaming, standby=server up but not streaming, offline=unreachable)
+                const camStatus = data.droidcam_status;
                 const droidText = document.getElementById("status-droidcam-text");
                 const droidDot = document.getElementById("dot-droidcam");
-                droidText.innerText = isCamOnline ? "DROIDCAM: ONLINE (4747)" : "DROIDCAM: OFFLINE";
-                droidDot.className = `badge-dot ${isCamOnline ? 'dot-green' : 'dot-red'}`;
+                if (camStatus === "online") {
+                    droidText.innerText = "DROIDCAM: STREAMING";
+                    droidDot.className = "badge-dot dot-green";
+                } else if (camStatus === "standby") {
+                    droidText.innerText = "DROIDCAM: STANDBY (open app!)";
+                    droidDot.className = "badge-dot dot-amber";
+                } else {
+                    droidText.innerText = "DROIDCAM: OFFLINE";
+                    droidDot.className = "badge-dot dot-red";
+                }
 
                 logEvent(`DOWNLINK TELEMETRY: CPU ${data.cpu_usage}% | TEMP ${data.cpu_temp}°C | RAM ${data.ram_usage}% | DROIDCAM: ${data.droidcam_status.toUpperCase()}`, "sys");
             }
