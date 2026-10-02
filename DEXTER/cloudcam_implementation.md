@@ -1,8 +1,8 @@
 # SmartSight CloudCam // System Implementation Guide
 **Deployment Target:** Raspberry Pi 4 (Debian 13 Trixie)  
 **Wearer Unit:** `ratish@raspberrypi4`  
-**Base Directory:** `/home/ratish/Desktop/SmartSight-Droidcam`  
-**Environment:** `/home/ratish/Desktop/SmartSight-Droidcam/venv`  
+**Base Directory:** `/home/ratish/Documents/SmartSight-DroidCam`  
+**Environment:** `/home/ratish/Documents/SmartSight-DroidCam/venv`  
 **Optical Source:** Android Phone (DroidCam over Tailscale Mesh)  
 **Cloud Backend:** Supabase (Database + Storage Bucket `cloudcam_data` + Realtime)
 
@@ -11,7 +11,7 @@
 ## 1. System Topology & Directory Map
 
 ```
-/home/ratish/Desktop/SmartSight-Droidcam/
+/home/ratish/Documents/SmartSight-DroidCam/
 ├── venv/                                # Virtual Environment (Python 3.12+ / Trixie)
 ├── captures/                            # Local image queue buffer (offline fallback)
 ├── cloudcam/                            # CloudCam Subsystem
@@ -73,19 +73,19 @@ Tailscale bridges the Android phone and Raspberry Pi over different networks (4G
 ## 4. Raspberry Pi Deployment (`ratish@raspberrypi4`)
 
 ### Step 4.1: Environment & Dependencies
-Your virtual environment is located at `~/Desktop/SmartSight/smartsight_env`:
+Your virtual environment is located at `~/Documents/SmartSight-DroidCam/venv`:
 
 ```bash
 # Activate your virtual environment
-source /home/ratish/Desktop/SmartSight-Droidcam/venv/bin/activate
+source /home/ratish/Documents/SmartSight-DroidCam/venv/bin/activate
 
 # Install required packages
-cd /home/ratish/Desktop/SmartSight-Droidcam/cloudcam
+cd /home/ratish/Documents/SmartSight-DroidCam/cloudcam
 pip install -r requirements.txt
 ```
 
 ### Step 4.2: Configure `.env`
-Edit `/home/ratish/Desktop/SmartSight-Droidcam/cloudcam/.env`:
+Edit `/home/ratish/Documents/SmartSight-DroidCam/cloudcam/.env`:
 
 ```ini
 # Supabase Project Credentials (from Settings -> API)
@@ -103,7 +103,7 @@ DROIDCAM_IP=100.95.120.40
 DROIDCAM_PORT=4747
 
 # Local Capture Directory for Offline Queue
-LOCAL_CAPTURE_DIR=/home/ratish/Desktop/SmartSight-Droidcam/captures
+LOCAL_CAPTURE_DIR=/home/ratish/Documents/SmartSight-DroidCam/captures
 ```
 
 ### Step 4.3: Test Run the Daemon Manually
@@ -117,7 +117,7 @@ The pre-configured service file [`smartsight-cloudcam.service`](smartsight-cloud
 
 ```bash
 # Copy unit file to systemd directory
-sudo cp /home/ratish/Desktop/SmartSight-Droidcam/cloudcam/smartsight-cloudcam.service /etc/systemd/system/
+sudo cp /home/ratish/Documents/SmartSight-DroidCam/cloudcam/smartsight-cloudcam.service /etc/systemd/system/
 
 # Reload systemd and enable on boot
 sudo systemctl daemon-reload
@@ -131,7 +131,7 @@ sudo journalctl -u smartsight-cloudcam.service -f
 
 ## 5. Launching the Tactical Control Centre UI
 
-The Control Centre files are located in `/home/ratish/Desktop/SmartSight-Droidcam/control_centre/`:
+The Control Centre files are located in `/home/ratish/Documents/SmartSight-DroidCam/control_centre/`:
 * [`index.html`](../control_centre/index.html) — LAEP Mission Control Dashboard
 * [`style.css`](../control_centre/style.css) — Aerospace Dark Theme (Space Grotesk / Inter / IBM Plex Mono)
 * [`app.js`](../control_centre/app.js) — Realtime Supabase Telemetry & Command Dispatcher
@@ -139,7 +139,7 @@ The Control Centre files are located in `/home/ratish/Desktop/SmartSight-Droidca
 ### Local Preview:
 Open `control_centre/index.html` directly in your browser, or serve it via python:
 ```bash
-cd /home/ratish/Desktop/SmartSight-Droidcam/control_centre
+cd /home/ratish/Documents/SmartSight-DroidCam/control_centre
 python3 -m http.server 8080
 ```
 Open `http://localhost:8080` in any web browser.

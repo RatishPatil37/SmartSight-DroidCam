@@ -6,9 +6,9 @@ Wants=network-online.target tailscaled.service
 [Service]
 Type=simple
 User=ratish
-WorkingDirectory=/home/ratish/Desktop/SmartSight-Droidcam/cloudcam
-Environment="PATH=/home/ratish/Desktop/SmartSight-Droidcam/venv/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/ratish/Desktop/SmartSight-Droidcam/venv/bin/python3 /home/ratish/Desktop/SmartSight-Droidcam/cloudcam/cloudcam_daemon.py
+WorkingDirectory=/home/ratish/Documents/SmartSight-DroidCam/cloudcam
+Environment="PATH=/home/ratish/Documents/SmartSight-DroidCam/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/ratish/Documents/SmartSight-DroidCam/venv/bin/python3 /home/ratish/Documents/SmartSight-DroidCam/cloudcam/cloudcam_daemon.py
 Restart=always
 RestartSec=5
 StandardOutput=journal
